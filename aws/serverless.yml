@@ -1,0 +1,34 @@
+
+service: netra-sync-service
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-south-1
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+          Resource: "arn:aws:s3:::attendance-records-netra/*"
+
+functions:
+  syncHandler:
+    handler: handler.sync
+    events:
+      - http:
+          path: sync
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    NetraRecordsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: attendance-records-netra
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256

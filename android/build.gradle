@@ -20,5 +20,25 @@ allprojects {
   }
 }
 
+subprojects { subproject ->
+  subproject.afterEvaluate {
+    if (subproject.plugins.hasPlugin('com.android.library') || subproject.plugins.hasPlugin('com.android.application')) {
+      subproject.android {
+        if (it.hasProperty('externalNativeBuild')) {
+          it.defaultConfig {
+            externalNativeBuild {
+              cmake {
+                arguments "-DANDROID_STL=c++_shared",
+                          "-DCMAKE_SHARED_LINKER_FLAGS=-lc++_shared",
+                          "-DCMAKE_EXE_LINKER_FLAGS=-lc++_shared"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
