@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Netra Identity",
+    "slug": "netra-identity",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Netra Identity needs camera access for facial recognition and liveness detection"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Netra Identity needs camera access for facial recognition and liveness detection"
+      },
+      "bundleIdentifier": "com.anonymous.netraidentity"
+    },
+    "android": {
+      "package": "com.anonymous.netraidentity",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    }
+  }
+}

@@ -1,0 +1,331 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--p1:#534AB7;--p1l:#EEEDFE;--p1m:#AFA9EC;--p2:#0F6E56;--p2l:#E1F5EE;--p2m:#5DCAA5;--p3:#185FA5;--p3l:#E6F1FB;--p3m:#85B7EB;--p4:#854F0B;--p4l:#FAEEDA;--p4m:#EF9F27}
+body{font-family:var(--font-sans)}
+.wrap{padding:1rem 0}
+
+/* Top nav */
+.top-nav{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.nav-btn{padding:7px 14px;font-size:13px;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);border-radius:20px;cursor:pointer;color:var(--color-text-secondary);transition:all 0.2s;display:flex;align-items:center;gap:6px}
+.nav-btn.active{color:#fff;border-color:transparent}
+.nav-btn.p1.active{background:var(--p1)}
+.nav-btn.p2.active{background:var(--p2)}
+.nav-btn.p3.active{background:var(--p3)}
+.nav-btn.p4.active{background:var(--p4)}
+.nav-btn.combo.active{background:linear-gradient(135deg,var(--p1),var(--p3))}
+.panel{display:none}.panel.active{display:block}
+
+/* Person header */
+.person-header{border-radius:var(--border-radius-lg);padding:1.25rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem}
+.avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;font-weight:500;color:#fff}
+.ph-title{font-size:18px;font-weight:500;color:#fff}
+.ph-role{font-size:13px;opacity:0.8;color:#fff;margin-top:2px}
+.ph-tags{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.ph-tag{background:rgba(255,255,255,0.2);color:#fff;font-size:11px;padding:2px 10px;border-radius:20px}
+
+/* Cards */
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:10px}
+.card-title{font-size:14px;font-weight:500;margin-bottom:6px}
+.card-body{font-size:13px;color:var(--color-text-secondary);line-height:1.7}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.section-label{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.8px;color:var(--color-text-secondary);margin:1rem 0 8px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary)}
+
+/* Task list */
+.task-list{list-style:none}
+.task-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.task-item:last-child{border-bottom:none}
+.task-day{font-size:11px;color:var(--color-text-secondary);min-width:52px;margin-top:1px;flex-shrink:0}
+.task-text{font-size:13px;color:var(--color-text-primary);line-height:1.5;flex:1}
+.task-badge{font-size:10px;padding:2px 8px;border-radius:20px;margin-top:2px;display:inline-block;flex-shrink:0}
+
+/* Deliverable checklist */
+.del-item{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:13px}
+.del-item:last-child{border-bottom:none}
+.del-check{width:18px;height:18px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;color:#fff}
+
+/* Combo / integration */
+.integration-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.int-card{border-radius:var(--border-radius-lg);padding:1rem;border:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary)}
+.int-card-title{font-size:13px;font-weight:500;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.int-card-body{font-size:12px;color:var(--color-text-secondary);line-height:1.6}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:1px}
+
+/* Gantt */
+.gantt{width:100%;margin:1rem 0;overflow:auto}
+.gantt-row{display:flex;align-items:center;gap:0;margin-bottom:6px}
+.gantt-label{width:120px;font-size:12px;color:var(--color-text-secondary);flex-shrink:0;line-height:1.3}
+.gantt-track{flex:1;height:28px;background:var(--color-background-secondary);border-radius:4px;position:relative;overflow:hidden}
+.gantt-bar{position:absolute;top:4px;height:20px;border-radius:3px;display:flex;align-items:center;padding:0 8px;font-size:10px;color:#fff;white-space:nowrap;font-weight:500}
+.gantt-days{display:flex;margin-left:120px;margin-bottom:4px}
+.gantt-day{flex:1;text-align:center;font-size:10px;color:var(--color-text-secondary)}
+
+/* Metrics */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px;text-align:center}
+.metric-val{font-size:18px;font-weight:500}
+.metric-lbl{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+
+/* Handoff */
+.handoff-flow{display:flex;align-items:center;gap:0;margin:1rem 0;flex-wrap:wrap}
+.hf-box{padding:10px 14px;border-radius:var(--border-radius-md);font-size:12px;font-weight:500;flex:1;min-width:120px;text-align:center;border:0.5px solid transparent}
+.hf-arrow{font-size:18px;color:var(--color-text-secondary);padding:0 4px;flex-shrink:0}
+
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;margin-right:4px}
+</style>
+
+<div class="wrap">
+<div class="top-nav">
+  <button class="nav-btn p1 active" onclick="show('p1',this)">👤 P1 — AI/ML</button>
+  <button class="nav-btn p2" onclick="show('p2',this)">👤 P2 — RN Dev</button>
+  <button class="nav-btn p3" onclick="show('p3',this)">👤 P3 — Backend</button>
+  <button class="nav-btn p4" onclick="show('p4',this)">👤 P4 — QA & Docs</button>
+  <button class="nav-btn combo" onclick="show('combo',this)">🔗 Integration</button>
+</div>
+
+<!-- ═══ PERSON 1: AI/ML ═══ -->
+<div class="panel active" id="panel-p1">
+  <div class="person-header" style="background:linear-gradient(135deg,#3C3489,#534AB7)">
+    <div class="avatar" style="background:rgba(255,255,255,0.2)">🤖</div>
+    <div>
+      <div class="ph-title">Person 1 — AI / ML Engineer</div>
+      <div class="ph-role">Owns all model research, training, compression & TFLite packaging</div>
+      <div class="ph-tags"><span class="ph-tag">MobileFaceNet</span><span class="ph-tag">MiniFASNet</span><span class="ph-tag">BlazeFace</span><span class="ph-tag">INT8 Quantization</span><span class="ph-tag">Knowledge Distillation</span></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-val" style="color:var(--p1)">4</div><div class="metric-lbl">models to deliver</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p1)">&lt;12</div><div class="metric-lbl">MB total budget</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p1)">&gt;97%</div><div class="metric-lbl">accuracy target</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p1)">Day 7</div><div class="metric-lbl">first handoff</div></div>
+  </div>
+
+  <div class="section-label">14-Day Task Breakdown</div>
+  <div class="card">
+    <ul class="task-list">
+      <li class="task-item"><span class="task-day">Day 1–2</span><div><div class="task-text">Research & select final model architectures. Download pretrained weights: MobileFaceNet (ArcFace), MiniFASNet-SF, BlazeFace short-range, MediaPipe FaceMesh. Set up Python training environment (PyTorch, OpenCV, TFLite converter).</div><span class="task-badge" style="background:var(--p1l);color:var(--p1)">Research</span></div></li>
+      <li class="task-item"><span class="task-day">Day 3–4</span><div><div class="task-text">Assemble Indian demographic training dataset: MS-Celeb-1M filtered for Indian faces + IIT-B face dataset + custom augmentation (CLAHE, brightness jitter ±40%, shadow overlays, Gaussian blur for motion). Verify diversity across skin tones (Fitzpatrick I–VI).</div><span class="task-badge" style="background:var(--p1l);color:var(--p1)">Dataset</span></div></li>
+      <li class="task-item"><span class="task-day">Day 5–6</span><div><div class="task-text">Fine-tune MobileFaceNet on augmented Indian dataset using ArcFace loss (margin=0.5, scale=64). Apply structured pruning (25% low-magnitude filters). Validate accuracy on held-out test set — target >97% top-1. Export to ONNX.</div><span class="task-badge" style="background:var(--p1l);color:var(--p1)">Training</span></div></li>
+      <li class="task-item"><span class="task-day">Day 7</span><div><div class="task-text">🔴 HANDOFF DAY — Convert all models to TFLite INT8 (post-training quantization with 500-image calibration set). Validate quantized accuracy loss <0.5%. Package: blazeface.tflite (0.3MB), facemesh.tflite (1.8MB), mobilefacenet_int8.tflite (3.8MB), minifasnet_int8.tflite (4.9MB). Hand off to Person 2.</div><span class="task-badge" style="background:#E1F5EE;color:var(--p2)">Handoff → P2</span></div></li>
+      <li class="task-item"><span class="task-day">Day 8–9</span><div><div class="task-text">Support Person 2's integration. Tune MiniFASNet decision threshold (target FAR<1%, FRR<3%). Write inference wrapper spec (input shape, normalisation, output interpretation) as a shared doc for Person 2 to implement against.</div><span class="task-badge" style="background:var(--p1l);color:var(--p1)">Support</span></div></li>
+      <li class="task-item"><span class="task-day">Day 10–11</span><div><div class="task-text">Run full accuracy benchmark on 50-subject test set (25M/25F, diverse states). Record: TAR@FAR=0.1%, EER, confusion matrix. Test spoofing resistance: printed A4 photos, phone screen replay, 3D mask simulation.</div><span class="task-badge" style="background:var(--p1l);color:var(--p1)">Benchmarks</span></div></li>
+      <li class="task-item"><span class="task-day">Day 12–14</span><div><div class="task-text">Write model architecture documentation (layer diagrams, parameter counts, compression rationale). Prepare benchmark result tables for the PPTX. Review final integrated app with P2 — confirm model inference outputs match expected ranges.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">Docs for P4</span></div></li>
+    </ul>
+  </div>
+
+  <div class="section-label">Deliverables (Person 1 owns)</div>
+  <div class="card">
+    <div class="del-item"><div class="del-check" style="background:var(--p1)">✓</div><div><strong>4 × TFLite INT8 models</strong> — blazeface, facemesh, mobilefacenet, minifasnet — ready for drop-in into RN assets folder</div></div>
+    <div class="del-item"><div class="del-check" style="background:var(--p1)">✓</div><div><strong>Inference spec sheet</strong> — input shape, normalization, output format for each model (used by P2)</div></div>
+    <div class="del-item"><div class="del-check" style="background:var(--p1)">✓</div><div><strong>Accuracy benchmark report</strong> — TAR/FAR/EER tables, spoofing test results, latency per model</div></div>
+    <div class="del-item"><div class="del-check" style="background:var(--p1)">✓</div><div><strong>Model architecture doc</strong> — layer counts, compression rationale, training hyperparameters (fed to P4 for PPTX)</div></div>
+  </div>
+</div>
+
+<!-- ═══ PERSON 2: RN DEV ═══ -->
+<div class="panel" id="panel-p2">
+  <div class="person-header" style="background:linear-gradient(135deg,#085041,#0F6E56)">
+    <div class="avatar" style="background:rgba(255,255,255,0.2)">📱</div>
+    <div>
+      <div class="ph-title">Person 2 — React Native Developer</div>
+      <div class="ph-role">Owns camera pipeline, TFLite bridge, liveness UI and full app screens</div>
+      <div class="ph-tags"><span class="ph-tag">react-native-fast-tflite</span><span class="ph-tag">Vision Camera v3</span><span class="ph-tag">MediaPipe</span><span class="ph-tag">Frame Processor</span><span class="ph-tag">TypeScript</span></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-val" style="color:var(--p2)">5</div><div class="metric-lbl">app screens</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p2)">&lt;700ms</div><div class="metric-lbl">latency target</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p2)">15fps</div><div class="metric-lbl">inference frame rate</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p2)">Day 11</div><div class="metric-lbl">feature freeze</div></div>
+  </div>
+
+  <div class="section-label">14-Day Task Breakdown</div>
+  <div class="card">
+    <ul class="task-list">
+      <li class="task-item"><span class="task-day">Day 1–2</span><div><div class="task-text">Bootstrap React Native 0.73 project (TypeScript template). Configure Android (min SDK 26) and iOS (min 12) build targets. Install and verify: react-native-vision-camera v3, react-native-fast-tflite, react-native-keychain. Set up folder structure (screens/, hooks/, models/, native/). Create placeholder screens for Enroll and Authenticate flows.</div><span class="task-badge" style="background:var(--p2l);color:var(--p2)">Setup</span></div></li>
+      <li class="task-item"><span class="task-day">Day 3–4</span><div><div class="task-text">Build camera frame processor plugin. Use VisionCamera's useFrameProcessor + runAtTargetFps(15) to capture frames at 15fps on the background thread without blocking the UI. Implement RGBA→grayscale and RGBA→RGB tensor conversion utilities in C++ (via JSI). Write TypeScript hooks: useCamera(), useFrameDimensions().</div><span class="task-badge" style="background:var(--p2l);color:var(--p2)">Camera Core</span></div></li>
+      <li class="task-item"><span class="task-day">Day 5–6</span><div><div class="task-text">Integrate BlazeFace frame processor. Draw bounding box overlay (React Native Skia). Implement face crop + affine alignment (using 5 BlazeFace keypoints → 112×112 normalized crop). Implement CLAHE pre-processing on face crop in native C++ for harsh lighting robustness. Test on direct sunlight and low-light scenarios.</div><span class="task-badge" style="background:var(--p2l);color:var(--p2)">Detection</span></div></li>
+      <li class="task-item"><span class="task-day">Day 7–8</span><div><div class="task-text">Receive TFLite models from P1. Integrate MobileFaceNet: load mobilefacenet_int8.tflite, run embedding inference on cropped face, implement cosine similarity match against stored embeddings fetched from P3's secure storage API. Integrate FaceMesh: parse 468 landmarks, compute EAR (blink), MAR (smile), yaw/pitch (head pose). Wire up active challenge logic.</div><span class="task-badge" style="background:var(--p2l);color:var(--p2)">AI Integration</span></div></li>
+      <li class="task-item"><span class="task-day">Day 9–10</span><div><div class="task-text">Build liveness challenge UI: animated overlay prompting blink / smile / turn left / turn right / nod. Random challenge selector. 5-second countdown timer. MiniFASNet passive check runs in parallel with active challenge. Both must pass for LIVE verdict. Build enrollment screen: 5-angle guided capture, compute averaged embedding, call P3's storage API to persist.</div><span class="task-badge" style="background:var(--p2l);color:var(--p2)">Liveness UI</span></div></li>
+      <li class="task-item"><span class="task-day">Day 11</span><div><div class="task-text">🔴 FEATURE FREEZE — All screens complete: Splash, Enroll, Authenticate, Result, Sync Status. Conduct end-to-end offline test on Redmi Note 9, Samsung A32, Moto G40. Record latency breakdown per stage. Hand integrated APK + IPA to P4 for testing.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">Handoff → P4</span></div></li>
+      <li class="task-item"><span class="task-day">Day 12–14</span><div><div class="task-text">Fix bugs surfaced by P4's QA. Add error states (no face detected, liveness failed, no match). Implement network connectivity listener (NetInfo) to trigger P3's sync. Polish UI animations, loading states. Final APK + IPA release build for submission.</div><span class="task-badge" style="background:var(--p2l);color:var(--p2)">Polish & Fix</span></div></li>
+    </ul>
+  </div>
+
+  <div class="section-label">5 App Screens — Owned by Person 2</div>
+  <div class="grid2">
+    <div class="card"><div class="card-title">1. Enrollment Screen</div><div class="card-body">Guided 5-angle capture (front, left, right, up, down). Progress indicator. Calls P3 storage API to save averaged embedding.</div></div>
+    <div class="card"><div class="card-title">2. Authentication Screen</div><div class="card-body">Live camera feed + bounding box. Issues random liveness challenge. Displays PASS/FAIL result with confidence score.</div></div>
+    <div class="card"><div class="card-title">3. Liveness Challenge UI</div><div class="card-body">Animated face outline. Text prompt + icon. 5s countdown. MiniFASNet + landmark check running in parallel.</div></div>
+    <div class="card"><div class="card-title">4. Result + Log Screen</div><div class="card-body">Authentication result card. Timestamp + match confidence. Offline queue count badge. Links to Sync Status.</div></div>
+  </div>
+</div>
+
+<!-- ═══ PERSON 3: BACKEND ═══ -->
+<div class="panel" id="panel-p3">
+  <div class="person-header" style="background:linear-gradient(135deg,#042C53,#185FA5)">
+    <div class="avatar" style="background:rgba(255,255,255,0.2)">🔐</div>
+    <div>
+      <div class="ph-title">Person 3 — Backend & Security Engineer</div>
+      <div class="ph-role">Owns encrypted local storage, sync/purge pipeline and AWS infrastructure</div>
+      <div class="ph-tags"><span class="ph-tag">SQLCipher</span><span class="ph-tag">AWS Amplify</span><span class="ph-tag">Lambda</span><span class="ph-tag">S3</span><span class="ph-tag">AES-256</span><span class="ph-tag">DataStore</span></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-val" style="color:var(--p3)">AES-256</div><div class="metric-lbl">encryption standard</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p3)">3</div><div class="metric-lbl">AWS services</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p3)">100%</div><div class="metric-lbl">idempotent sync</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p3)">Day 6</div><div class="metric-lbl">storage API ready</div></div>
+  </div>
+
+  <div class="section-label">14-Day Task Breakdown</div>
+  <div class="card">
+    <ul class="task-list">
+      <li class="task-item"><span class="task-day">Day 1–2</span><div><div class="task-text">Design SQLCipher database schema: tables for Personnel (id, name, embedding_blob, enrolled_at), AttendanceLog (id, personnel_id, timestamp, liveness_method, confidence, synced), SyncQueue (id, record_id, type, created_at, retries). Set up encryption key derivation strategy: PBKDF2-SHA256 (100k iterations) seeded from device UUID + app secret — key stored in react-native-keychain (Keystore/Secure Enclave backed).</div><span class="task-badge" style="background:var(--p3l);color:var(--p3)">Schema Design</span></div></li>
+      <li class="task-item"><span class="task-day">Day 3–4</span><div><div class="task-text">Implement SQLCipher integration via react-native-sqlite-storage (fork with cipher support). Write StorageService class with full TypeScript API: enrollPersonnel(), getEmbedding(), logAttendance(), getPendingSync(), markSynced(), purgeAttendanceLogs(). Write unit tests for each method. Verify AES-256 encryption is active (hexdump of DB file must show no plaintext).</div><span class="task-badge" style="background:var(--p3l);color:var(--p3)">Local Storage</span></div></li>
+      <li class="task-item"><span class="task-day">Day 5–6</span><div><div class="task-text">🔴 HANDOFF — Expose StorageService as a clean module to P2. Provide integration guide (function signatures, error codes, async patterns). Simultaneously: provision AWS infrastructure — S3 bucket (attendance-records-netra, versioning on, SSE-S3 encryption), Lambda function (netra-sync-handler, Python 3.11), IAM roles, Amplify project init with DataStore model.</div><span class="task-badge" style="background:var(--p2l);color:var(--p2)">Handoff → P2</span></div></li>
+      <li class="task-item"><span class="task-day">Day 7–8</span><div><div class="task-text">Build Sync Engine: NetInfo listener in React Native — on network CONNECTED, trigger SyncService.syncPendingRecords(). SyncService reads SyncQueue → batches records → POST to API Gateway → Lambda validates + inserts to S3 as JSON per record (key: deviceId/date/recordId.json). On 200 response: mark records synced in local DB. Write retry logic: max 3 retries with exponential backoff.</div><span class="task-badge" style="background:var(--p3l);color:var(--p3)">Sync Engine</span></div></li>
+      <li class="task-item"><span class="task-day">Day 9–10</span><div><div class="task-text">Build Purge Mechanism: post-sync purge function deletes attendance log rows where synced=1 AND timestamp < (NOW - 24h). Embeddings are NEVER purged locally (only on explicit device de-provisioning). Test full cycle: log 10 records offline → restore network → verify sync → verify purge → verify S3 contains all 10 records. Test idempotency: replay same sync — no duplicates in S3.</div><span class="task-badge" style="background:var(--p3l);color:var(--p3)">Purge & Safety</span></div></li>
+      <li class="task-item"><span class="task-day">Day 11–12</span><div><div class="task-text">Security hardening: certificate pinning for API Gateway (prevent MITM on sync). Implement jailbreak/root detection (react-native-jail-monkey) — refuse enrollment on compromised devices. Validate embedding blob integrity on read (SHA-256 checksum stored alongside blob). Write security threat model document.</div><span class="task-badge" style="background:var(--p3l);color:var(--p3)">Security</span></div></li>
+      <li class="task-item"><span class="task-day">Day 13–14</span><div><div class="task-text">End-to-end sync stress test: 500 attendance records, 3 network drops mid-sync, verify zero data loss. Write AWS infrastructure guide (for P4 documentation). Monitor Lambda logs for errors. Final review with P2 on sync status screen integration.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">Docs for P4</span></div></li>
+    </ul>
+  </div>
+
+  <div class="section-label">Deliverables (Person 3 owns)</div>
+  <div class="card">
+    <div class="del-item"><div class="del-check" style="background:var(--p3)">✓</div><div><strong>StorageService module</strong> — fully typed TypeScript API for all local DB operations, ready for P2 to import</div></div>
+    <div class="del-item"><div class="del-check" style="background:var(--p3)">✓</div><div><strong>SyncService module</strong> — network-aware sync engine with retry, idempotent S3 upload, post-sync purge</div></div>
+    <div class="del-item"><div class="del-check" style="background:var(--p3)">✓</div><div><strong>AWS infrastructure</strong> — provisioned S3, Lambda, API Gateway, IAM; Amplify config files committed to repo</div></div>
+    <div class="del-item"><div class="del-check" style="background:var(--p3)">✓</div><div><strong>Security threat model</strong> — encryption strategy, cert pinning, root detection rationale (fed to P4 for docs)</div></div>
+  </div>
+</div>
+
+<!-- ═══ PERSON 4: QA + DOCS ═══ -->
+<div class="panel" id="panel-p4">
+  <div class="person-header" style="background:linear-gradient(135deg,#633806,#854F0B)">
+    <div class="avatar" style="background:rgba(255,255,255,0.2)">📋</div>
+    <div>
+      <div class="ph-title">Person 4 — QA Lead & Documentation</div>
+      <div class="ph-role">Owns testing, benchmarking, PPTX deck, integration guide and submission package</div>
+      <div class="ph-tags"><span class="ph-tag">Detox (E2E)</span><span class="ph-tag">Jest</span><span class="ph-tag">Benchmarking</span><span class="ph-tag">PPTX Deck</span><span class="ph-tag">GitHub README</span></div>
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><div class="metric-val" style="color:var(--p4)">3</div><div class="metric-lbl">device tiers tested</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p4)">50</div><div class="metric-lbl">test subjects</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p4)">15</div><div class="metric-lbl">PPTX slides</div></div>
+    <div class="metric"><div class="metric-val" style="color:var(--p4)">Day 5</div><div class="metric-lbl">PPTX draft ready</div></div>
+  </div>
+
+  <div class="section-label">14-Day Task Breakdown</div>
+  <div class="card">
+    <ul class="task-list">
+      <li class="task-item"><span class="task-day">Day 1–3</span><div><div class="task-text">Write test plan document covering: unit tests (Jest for StorageService, SyncService), integration tests (camera → model → storage end-to-end), E2E tests (Detox: enroll flow, auth pass, auth fail, liveness pass, sync trigger). Prepare 50-subject test dataset (volunteers, diverse demographics). Set up 3 test devices: Budget (Redmi Note 9, 4GB), Mid (Samsung A52, 6GB), High (OnePlus Nord, 8GB).</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">Test Plan</span></div></li>
+      <li class="task-item"><span class="task-day">Day 4–5</span><div><div class="task-text">Begin PPTX slide deck (collect inputs from P1, P2, P3 as their work progresses): Title slide, Problem Statement, Solution Overview, NETRA Architecture, AI Pipeline diagram, Model Compression story, Liveness Engine detail, Security Architecture, Sync/Purge flow, Demo screenshots, Performance benchmarks (to fill later), Evaluation criteria map, Team slide, Q&A. Deck structure locked by Day 5.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">PPTX Draft</span></div></li>
+      <li class="task-item"><span class="task-day">Day 6–8</span><div><div class="task-text">Write integration guide (README.md): prerequisites, step-by-step integration into existing Datalake 3.0 RN codebase, configuration for Android NNAPI delegate and iOS Core ML delegate, SQLCipher setup, AWS Amplify config, troubleshooting common errors. Maintain as living doc — update as P2 and P3 complete features.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">Integration Guide</span></div></li>
+      <li class="task-item"><span class="task-day">Day 9–10</span><div><div class="task-text">Write and run Jest unit test suite (StorageService, SyncService, EAR/MAR/pose math). Target 80%+ coverage. Write Detox E2E scenarios: happy path enroll+auth, liveness challenge each type (5 scenarios), auth rejection on wrong person, sync trigger on network restore, purge verification. Run tests on all 3 devices.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">Automated Tests</span></div></li>
+      <li class="task-item"><span class="task-day">Day 11</span><div><div class="task-text">Receive feature-frozen build from P2. Run full manual QA: 50-subject recognition accuracy test (each enrolled, 3 auth attempts = 150 auth events). Record: match rate, false accept rate, false reject rate. Spoof test: printed photos (5 people × 3 prints), phone screen replay (5 people × 2 videos). Record all results in benchmark table.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">QA Execution</span></div></li>
+      <li class="task-item"><span class="task-day">Day 12</span><div><div class="task-text">Latency benchmarking: time each pipeline stage (BlazeFace, FaceMesh, MobileFaceNet, MiniFASNet, DB lookup, total) across 3 devices × 3 lighting conditions (indoor/outdoor sun/shadow). 30 measurements per condition — report mean ± std dev. Fill benchmark slides in PPTX with real numbers.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">Performance</span></div></li>
+      <li class="task-item"><span class="task-day">Day 13–14</span><div><div class="task-text">Record demo video (screen recording + voice-over): enroll → auth pass → liveness challenge → offline operation → sync trigger. Finalize PPTX (real benchmark numbers, demo screenshots). Package GitHub repo: clean README, all source files, model assets, architecture docs, integration guide. Submission checklist review. Submit by 5 June 23:59.</div><span class="task-badge" style="background:var(--p4l);color:var(--p4)">Submission</span></div></li>
+    </ul>
+  </div>
+
+  <div class="section-label">PPTX Slide Outline (15 slides)</div>
+  <div class="grid2">
+    <div class="card"><div class="card-title">Slides 1–5: Context</div><div class="card-body">Title + Team, Problem Statement, NETRA concept overview, Architecture diagram (from P1), AI pipeline flowchart (from P1)</div></div>
+    <div class="card"><div class="card-title">Slides 6–10: Technical</div><div class="card-body">Model compression story, Tri-layer liveness engine, Security architecture (from P3), Sync/Purge flow (from P3), React Native integration (from P2)</div></div>
+    <div class="card"><div class="card-title">Slides 11–13: Results</div><div class="card-body">Accuracy benchmark table, Latency benchmark (all 3 devices), Spoofing resistance results</div></div>
+    <div class="card"><div class="card-title">Slides 14–15: Close</div><div class="card-body">Evaluation criteria map (Innovation / Feasibility / Scalability / Docs — scored), Q&A + GitHub repo QR code</div></div>
+  </div>
+</div>
+
+<!-- ═══ INTEGRATION ═══ -->
+<div class="panel" id="panel-combo">
+  <div class="section-label">Combined Gantt — 14-Day Sprint</div>
+  <div class="gantt-days">
+    <div class="gantt-day">D1</div><div class="gantt-day">D2</div><div class="gantt-day">D3</div><div class="gantt-day">D4</div>
+    <div class="gantt-day">D5</div><div class="gantt-day">D6</div><div class="gantt-day">D7</div><div class="gantt-day">D8</div>
+    <div class="gantt-day">D9</div><div class="gantt-day">D10</div><div class="gantt-day">D11</div><div class="gantt-day">D12</div>
+    <div class="gantt-day">D13</div><div class="gantt-day">D14</div>
+  </div>
+  <div class="gantt-row"><div class="gantt-label">P1 Dataset & Train</div><div class="gantt-track"><div class="gantt-bar" style="left:0%;width:42%;background:var(--p1)">Research → Train</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P1 Convert & Package</div><div class="gantt-track"><div class="gantt-bar" style="left:42%;width:14%;background:#7F77DD">TFLite INT8</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P1 Benchmark & Docs</div><div class="gantt-track"><div class="gantt-bar" style="left:56%;width:44%;background:#AFA9EC">Accuracy + Support</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P2 RN Setup</div><div class="gantt-track"><div class="gantt-bar" style="left:0%;width:28%;background:var(--p2)">Bootstrap + Camera</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P2 Detection UI</div><div class="gantt-track"><div class="gantt-bar" style="left:28%;width:28%;background:#1D9E75">BlazeFace + Crop</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P2 AI Integration</div><div class="gantt-track"><div class="gantt-bar" style="left:56%;width:21%;background:#5DCAA5">Models + Liveness</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P2 Polish & Fix</div><div class="gantt-track"><div class="gantt-bar" style="left:77%;width:23%;background:#9FE1CB">QA fixes + Build</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P3 Schema + DB</div><div class="gantt-track"><div class="gantt-bar" style="left:0%;width:35%;background:var(--p3)">SQLCipher + API</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P3 Sync Engine</div><div class="gantt-track"><div class="gantt-bar" style="left:35%;width:35%;background:#378ADD">Sync + Purge + AWS</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P3 Security + Test</div><div class="gantt-track"><div class="gantt-bar" style="left:70%;width:30%;background:#85B7EB">Hardening + Stress</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P4 Test Plan + PPTX</div><div class="gantt-track"><div class="gantt-bar" style="left:0%;width:35%;background:var(--p4)">Plan + Deck Draft</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P4 Integration Guide</div><div class="gantt-track"><div class="gantt-bar" style="left:35%;width:35%;background:#BA7517">README + Docs</div></div></div>
+  <div class="gantt-row"><div class="gantt-label">P4 QA Execution</div><div class="gantt-track"><div class="gantt-bar" style="left:70%;width:30%;background:#EF9F27">Test + Benchmark + Submit</div></div></div>
+
+  <div class="section-label" style="margin-top:1.5rem">Critical Handoff Points</div>
+  <div class="handoff-flow">
+    <div class="hf-box" style="background:var(--p1l);border-color:var(--p1m);color:var(--p1)">P1 → P2<br><small style="font-weight:400;font-size:11px">Day 7: 4× TFLite models + inference spec sheet</small></div>
+    <div class="hf-arrow">→</div>
+    <div class="hf-box" style="background:var(--p3l);border-color:var(--p3m);color:var(--p3)">P3 → P2<br><small style="font-weight:400;font-size:11px">Day 6: StorageService API + usage guide</small></div>
+    <div class="hf-arrow">→</div>
+    <div class="hf-box" style="background:var(--p2l);border-color:var(--p2m);color:var(--p2)">P2 → P4<br><small style="font-weight:400;font-size:11px">Day 11: Frozen APK + IPA builds</small></div>
+    <div class="hf-arrow">→</div>
+    <div class="hf-box" style="background:var(--p4l);border-color:var(--p4m);color:var(--p4)">P4 → Submit<br><small style="font-weight:400;font-size:11px">Day 14: PPTX + Repo + Demo video</small></div>
+  </div>
+
+  <div class="section-label" style="margin-top:1rem">Module Integration Map</div>
+  <div class="integration-grid">
+    <div class="int-card" style="border-left:3px solid var(--p1)">
+      <div class="int-card-title"><div class="dot" style="background:var(--p1)"></div>P1 outputs consumed by P2</div>
+      <div class="int-card-body">blazeface.tflite → Frame processor (P2 detects faces). facemesh.tflite → Landmark hook (P2 computes EAR/MAR/pose). mobilefacenet_int8.tflite → Embedding hook (P2 runs recognition). minifasnet_int8.tflite → Passive liveness hook (P2 runs anti-spoofing). Inference spec → P2 writes correct input normalization.</div>
+    </div>
+    <div class="int-card" style="border-left:3px solid var(--p3)">
+      <div class="int-card-title"><div class="dot" style="background:var(--p3)"></div>P3 outputs consumed by P2</div>
+      <div class="int-card-body">StorageService.enrollPersonnel() → called by P2's enrollment screen. StorageService.getEmbedding() → called by P2's auth screen for cosine match. StorageService.logAttendance() → called by P2 on successful auth. SyncService → wired to P2's NetInfo listener hook. Amplify config → imported into P2's RN project.</div>
+    </div>
+    <div class="int-card" style="border-left:3px solid var(--p2)">
+      <div class="int-card-title"><div class="dot" style="background:var(--p2)"></div>P2 outputs consumed by P4</div>
+      <div class="int-card-body">Feature-frozen APK (Android) + IPA (iOS) → P4 installs on 3 test devices for QA execution. Screen recordings → P4 uses for PPTX screenshots and demo video. Console latency logs → P4 extracts timing data for benchmark tables.</div>
+    </div>
+    <div class="int-card" style="border-left:3px solid var(--p4)">
+      <div class="int-card-title"><div class="dot" style="background:var(--p4)"></div>P4 outputs = final submission</div>
+      <div class="int-card-body">GitHub repo with all source (P1 Python training scripts, P2 RN app, P3 Lambda + DB modules, P4 test suites + docs). 15-slide PPTX deck. README integration guide. Demo video. Benchmark PDF attached to submission form.</div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-top:1rem">What Each Person Builds Independently</div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--p1);margin-bottom:6px">🤖 P1 — Fully standalone</div>
+        <div class="int-card-body">All Python training code. Model evaluation scripts. Compression pipeline. Dataset preparation. Runs entirely independent of RN app — only artifact is the 4 .tflite files delivered on Day 7.</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--p3);margin-bottom:6px">🔐 P3 — Standalone until Day 6</div>
+        <div class="int-card-body">StorageService and SyncService built and unit-tested before P2 touches them. AWS infra provisioned independently. P2 only needs to import and call the typed API — no knowledge of SQLCipher internals required.</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--p2);margin-bottom:6px">📱 P2 — Integrator role</div>
+        <div class="int-card-body">Camera + UI built first with mock data (Days 1–6). Real models (P1) and real storage (P3) dropped in on Days 7–10. This allows P2 to work without waiting for either dependency.</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:500;color:var(--p4);margin-bottom:6px">📋 P4 — Parallel throughout</div>
+        <div class="int-card-body">Test plan and PPTX draft run in parallel from Day 1. P4 never blocks on P1/P2/P3 — collects their outputs progressively. Only QA execution (Days 11–12) depends on P2's frozen build.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+function show(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+</script>

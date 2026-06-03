@@ -1,0 +1,31 @@
+# Node modules
+node_modules/
+# Expo & React Native caches
+.expo/
+.expo-shared/
+.expo-dev-client/
+# Build output directories
+android/app/build/
+ios/build/
+# Gradle files
+.gradle/
+# Pods (iOS)
+ios/Pods/
+# Metro bundler cache
+/.metro
+# Fast TFLite model caches
+*.tflite
+# Generated files
+.expo/**
+# macOS system files
+.DS_Transfer
+# Log files
+*.log
+# Misc
+npm-debug.log*
+ yarn-error.log
+# IDE files
+.idea/
+.vscode/
+# Environment files
+.env
