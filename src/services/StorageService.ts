@@ -112,7 +112,6 @@ export class StorageService {
              al.personnel_id, al.timestamp, al.liveness_method, al.confidence 
       FROM SyncQueue sq
       JOIN AttendanceLog al ON sq.record_id = al.id
-      WHERE sq.retries < 3
       ORDER BY sq.created_at ASC
     `);
     const pending: any[] = [];
