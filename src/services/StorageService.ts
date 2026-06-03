@@ -109,9 +109,10 @@ export class StorageService {
     const db = this.ensureDB();
     const [results] = await db.executeSql(`
       SELECT sq.id as queueId, sq.record_id, sq.type, 
-             al.personnel_id, al.timestamp, al.liveness_method, al.confidence 
+             al.personnel_id, p.name as personnel_name, al.timestamp, al.liveness_method, al.confidence 
       FROM SyncQueue sq
       JOIN AttendanceLog al ON sq.record_id = al.id
+      JOIN Personnel p ON al.personnel_id = p.id
       ORDER BY sq.created_at ASC
     `);
     const pending: any[] = [];
