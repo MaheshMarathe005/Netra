@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { Camera } from 'react-native-vision-camera';
 import { useCameraInfo } from '../hooks/useCamera';
 import { useAppServices } from '../contexts/AppContext';
@@ -8,21 +8,43 @@ import { useAppServices } from '../contexts/AppContext';
 export default function AuthenticationScreen() {
   const navigation = useNavigation<any>();
   const camera = useRef<Camera>(null);
-  const { isFaceDetected, processPhoto, livenessScore, device, hasPermission, modelsLoaded, lastEmbedding, cosineSimilarity } = useCameraInfo();
-  const { storage, isReady, syncQueueCount } = useAppServices();
+  const isFocused = useIsFocused();
+  const { isFaceDetected, processPhoto, livenessScore, device, format, hasPermission, modelsLoaded, lastEmbedding, cosineSimilarity } = useCameraInfo();
+  const { storage, isReady, syncQueueCount, sync } = useAppServices();
   const laserAnim = useRef(new Animated.Value(0)).current;
   const [matchedPerson, setMatchedPerson] = useState<{ id: number; name: string; similarity: number } | null>(null);
   const [isMatching, setIsMatching] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setMatchedPerson(null);
+      setIsMatching(false);
+      
+      const fetchCloud = async () => {
+        if (sync) {
+          setIsSyncing(true);
+          console.log('[USER LOG] Searching cloud database for remote enrollments...');
+          const count = await sync.fetchCloudPersonnel();
+          if (count > 0) {
+            console.log(`[USER LOG] Successfully pulled ${count} personnel from AWS S3 into local database!`);
+          } else {
+            console.log('[USER LOG] Cloud database in sync.');
+          }
+          setIsSyncing(false);
+        }
+      };
+      fetchCloud();
+    }, [sync])
+  );
 
   // Async ML Processing Loop (Safe from Native Crashes)
   useEffect(() => {
-    if (!modelsLoaded) return;
-
     let isActive = true;
     let isProcessing = false;
 
     const processLoop = async () => {
-      if (!isActive) return;
+      if (!isActive || !isFocused) return;
       if (isProcessing) {
         setTimeout(processLoop, 500);
         return;
@@ -30,7 +52,7 @@ export default function AuthenticationScreen() {
 
       isProcessing = true;
       try {
-        if (camera.current) {
+        if (camera.current != null && device != null && isFocused && hasPermission) {
           const photo = await camera.current.takePhoto({ qualityPrioritization: 'speed' });
           if (photo && photo.path) {
             await processPhoto(photo.path);
@@ -43,12 +65,14 @@ export default function AuthenticationScreen() {
       setTimeout(processLoop, 1000); // Take a photo every 1 second
     };
 
-    processLoop();
+    if (isFocused && modelsLoaded) {
+      processLoop();
+    }
 
     return () => {
       isActive = false;
     };
-  }, [modelsLoaded, processPhoto]);
+  }, [modelsLoaded, processPhoto, isFocused, device, hasPermission]);
 
   useEffect(() => {
     // Cyberpunk Laser Sweep Simulation
@@ -62,7 +86,7 @@ export default function AuthenticationScreen() {
 
   // Attempt face matching when an embedding is available
   useEffect(() => {
-    if (!lastEmbedding || !storage || !isReady || isMatching) return;
+    if (!lastEmbedding || !storage || !isReady || isMatching || !isFocused) return;
 
     const matchFace = async () => {
       setIsMatching(true);
@@ -78,12 +102,11 @@ export default function AuthenticationScreen() {
 
         for (const person of personnel) {
           try {
-            // person.embedding is a JSON string of an array of 5 stringified vectors
-            const storedAnglesRaw = JSON.parse(person.embedding);
-            const storedAngles = Array.isArray(storedAnglesRaw) ? storedAnglesRaw : [];
+            const enrollmentData = JSON.parse(person.embedding);
+            const storedEmbeddings = enrollmentData.embeddings || [];
             
-            for (const angleString of storedAngles) {
-              const embeddingVector = JSON.parse(angleString);
+            for (const embStr of storedEmbeddings) {
+              const embeddingVector = JSON.parse(embStr);
               if (Array.isArray(embeddingVector) && embeddingVector.length === lastEmbedding.length) {
                 const similarity = cosineSimilarity(lastEmbedding, embeddingVector);
                 if (similarity > MATCH_THRESHOLD && (!bestMatch || similarity > bestMatch.similarity)) {
@@ -91,7 +114,7 @@ export default function AuthenticationScreen() {
                 }
               }
             }
-          } catch {
+          } catch (err) {
             // Skip invalid embeddings
           }
         }
@@ -107,7 +130,7 @@ export default function AuthenticationScreen() {
     };
 
     matchFace();
-  }, [lastEmbedding, storage, isReady, cosineSimilarity, isMatching]);
+  }, [lastEmbedding, storage, isReady, cosineSimilarity, isMatching, isFocused]);
 
   const laserTranslateY = laserAnim.interpolate({
     inputRange: [0, 1],
@@ -115,11 +138,16 @@ export default function AuthenticationScreen() {
   });
 
   const startLiveness = () => {
-    navigation.navigate('Liveness', { personId: matchedPerson?.id });
+    console.log(`[USER LOG] Liveness check initiated for matched person: ${matchedPerson?.name} (ID: ${matchedPerson?.id})`);
+    navigation.navigate('Liveness', { personId: matchedPerson?.id, personName: matchedPerson?.name });
   };
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+        <Text style={styles.backButtonText}>{'<< ABORT'}</Text>
+      </TouchableOpacity>
+
       <View style={styles.hudHeader}>
         <View style={styles.pulseGreen} />
         <Text style={styles.header}>SECURE SANDBOX: AUTHENTICATE</Text>
@@ -131,7 +159,8 @@ export default function AuthenticationScreen() {
             ref={camera}
             style={StyleSheet.absoluteFill}
             device={device}
-            isActive={true}
+            format={format}
+            isActive={isFocused}
             photo={true}
           />
         ) : (
@@ -187,13 +216,19 @@ export default function AuthenticationScreen() {
       </View>
 
       <TouchableOpacity 
-        style={[styles.cyberButton, !isFaceDetected && styles.cyberButtonDisabled]} 
+        style={[styles.cyberButton, (!isFaceDetected || !matchedPerson || isSyncing) && styles.cyberButtonDisabled]} 
         onPress={startLiveness}
-        disabled={!isFaceDetected}
+        disabled={!isFaceDetected || !matchedPerson || isSyncing}
         activeOpacity={0.8}
       >
         <View style={styles.buttonBracketLeft} />
-        <Text style={styles.buttonText}>{isFaceDetected ? '[ INITIATE LIVENESS SEQUENCE ]' : '[ ACQUIRING TARGET... ]'}</Text>
+        <Text style={styles.buttonText}>
+          {isSyncing
+            ? '[ SYNCING CLOUD DATABASE... ]'
+            : !isFaceDetected 
+              ? '[ ACQUIRING TARGET... ]' 
+              : (!matchedPerson ? '[ SCANNING DATABASE... ]' : '[ INITIATE LIVENESS SEQUENCE ]')}
+        </Text>
         <View style={styles.buttonBracketRight} />
       </TouchableOpacity>
     </View>
@@ -202,7 +237,9 @@ export default function AuthenticationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: '#05070a' },
-  hudHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 25 },
+  backButton: { position: 'absolute', top: 40, left: 20, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(0, 255, 204, 0.1)', borderWidth: 1, borderColor: '#00ffcc', zIndex: 100 },
+  backButtonText: { color: '#00ffcc', fontFamily: 'monospace', fontSize: 12, fontWeight: 'bold', letterSpacing: 1 },
+  hudHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 25, marginTop: 50, alignSelf: 'center' },
   pulseGreen: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#00ffcc', marginRight: 10, shadowColor: '#00ffcc', shadowRadius: 10, shadowOpacity: 1, elevation: 5 },
   header: { fontSize: 16, fontWeight: 'bold', color: '#00ffcc', letterSpacing: 2, fontFamily: 'monospace' },
   

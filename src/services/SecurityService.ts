@@ -11,27 +11,27 @@ export class SecurityService {
   }
 
   static async getOrCreateEncryptionKey(): Promise<string> {
-    // if (this.isDeviceCompromised()) {
-    //     throw new Error("Device is compromised. Terminating operation.");
-    // }
-
-    const credentials = await Keychain.getGenericPassword();
-    
-    if (credentials) {
-      return credentials.password;
-    } else {
-      // Generate new key using PBKDF2
-      const salt = CryptoJS.lib.WordArray.random(128/8).toString();
-      const deviceUUID = uuidv4(); 
-      const appSecret = "NETRA_HACKATHON_SECURE_SECRET_V1";
+    try {
+      const credentials = await Keychain.getGenericPassword();
       
-      const key = CryptoJS.PBKDF2(deviceUUID + appSecret, salt, { 
-        keySize: 256/32, 
-        iterations: 100000 
-      }).toString();
-      
-      await Keychain.setGenericPassword('netra_db_user', key);
-      return key;
+      if (credentials) {
+        return credentials.password;
+      } else {
+        const salt = CryptoJS.lib.WordArray.random(128/8).toString();
+        const deviceUUID = uuidv4(); 
+        const appSecret = "NETRA_HACKATHON_SECURE_SECRET_V1";
+        
+        const key = CryptoJS.PBKDF2(deviceUUID + appSecret, salt, { 
+          keySize: 256/32, 
+          iterations: 1000 
+        }).toString();
+        
+        await Keychain.setGenericPassword('netra_db_user', key);
+        return key;
+      }
+    } catch (err) {
+      console.warn("Keychain error, falling back to static key:", err);
+      return "FALLBACK_HACKATHON_KEY_SECURE_123456";
     }
   }
 

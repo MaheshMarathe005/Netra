@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { Camera } from 'react-native-vision-camera';
 import { useCameraInfo } from '../hooks/useCamera';
 import { useAppServices } from '../contexts/AppContext';
@@ -33,10 +33,12 @@ type Phase = 'NAME_INPUT' | 'CAPTURING' | 'PROCESSING' | 'COMPLETE';
 
 export default function EnrollmentScreen() {
   const navigation = useNavigation<any>();
+  const isFocused = useIsFocused();
   const { storage, isReady: servicesReady, error: appServicesError } = useAppServices();
   const camera = useRef<Camera>(null);
   const {
     device,
+    format,
     hasPermission,
     isFaceDetected,
     livenessScore,
@@ -53,15 +55,25 @@ export default function EnrollmentScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [enrollError, setEnrollError] = useState<string | null>(null);
 
+  // Reset state on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      setPhase('NAME_INPUT');
+      setName('');
+      setCurrentStep(0);
+      setCapturedEmbeddings([]);
+      setIsCapturing(false);
+      setEnrollError(null);
+    }, [])
+  );
+
   // Async ML Processing Loop (Safe from Native Crashes)
   useEffect(() => {
-    if (phase !== 'CAPTURING' || !modelsLoaded) return;
-
     let isActive = true;
     let isProcessing = false;
 
     const processLoop = async () => {
-      if (!isActive) return;
+      if (!isActive || !isFocused) return;
       if (isProcessing) {
         setTimeout(processLoop, 500);
         return;
@@ -69,7 +81,7 @@ export default function EnrollmentScreen() {
 
       isProcessing = true;
       try {
-        if (camera.current) {
+        if (camera.current != null && device != null && isFocused && hasPermission) {
           const photo = await camera.current.takePhoto({ qualityPrioritization: 'speed' });
           if (photo && photo.path) {
             await processPhoto(photo.path);
@@ -82,12 +94,14 @@ export default function EnrollmentScreen() {
       setTimeout(processLoop, 1000); // Take a photo every 1 second
     };
 
-    processLoop();
+    if (isFocused && modelsLoaded && phase === 'CAPTURING') {
+      processLoop();
+    }
 
     return () => {
       isActive = false;
     };
-  }, [phase, modelsLoaded, processPhoto]);
+  }, [phase, modelsLoaded, processPhoto, isFocused, device, hasPermission]);
 
   // ── Animations ─────────────────────────────────────────────────────────────
   const scanLineAnim = useRef(new Animated.Value(0)).current;
@@ -199,6 +213,7 @@ export default function EnrollmentScreen() {
 
   const handleBeginEnrollment = useCallback(() => {
     const trimmedName = name.trim();
+    console.log(`[USER LOG] Attempting to begin enrollment for user: ${trimmedName}`);
     if (!trimmedName) {
       Alert.alert(
         '[ INPUT REQUIRED ]',
@@ -235,6 +250,7 @@ export default function EnrollmentScreen() {
   }, [name, device, hasPermission, servicesReady, storage]);
 
   const handleCapture = useCallback(() => {
+    console.log(`[USER LOG] Manual capture requested. Processing step: ${currentStep + 1}`);
     if (isCapturing || !isFaceDetected || !lastEmbedding) return;
 
     setIsCapturing(true);
@@ -295,11 +311,14 @@ export default function EnrollmentScreen() {
         setTimeout(() => {
           Alert.alert(
             '[ ENROLLMENT COMPLETE ]',
-            `Personnel "${name.trim()}" enrolled successfully.\nID: ${personId}\nProceeding to authentication.`,
+            `Personnel "${name.trim()}" enrolled successfully.\nID: ${personId}\nProceeding to liveness challenge.`,
             [
               {
-                text: 'PROCEED',
-                onPress: () => navigation.navigate('Authentication'),
+                text: 'INITIATE LIVENESS CHECK',
+                onPress: () => navigation.navigate('Liveness', { 
+                  personId: personId, 
+                  personName: name.trim() 
+                }),
               },
             ],
           );
@@ -367,10 +386,28 @@ export default function EnrollmentScreen() {
         <View style={styles.buttonBracketRight} />
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={[styles.cyberButton, { marginTop: 15, borderColor: '#ffaa00' }]}
+        onPress={() => navigation.navigate('Authentication')}
+        activeOpacity={0.8}
+      >
+        <View style={[styles.buttonBracketLeft, { borderLeftColor: '#ffaa00', borderTopColor: '#ffaa00', borderBottomColor: '#ffaa00' }]} />
+        <Text style={[styles.buttonText, { color: '#ffaa00', textShadowColor: 'rgba(255,170,0,0.5)' }]}>
+          [ SKIP TO AUTHENTICATION ]
+        </Text>
+        <View style={[styles.buttonBracketRight, { borderRightColor: '#ffaa00', borderTopColor: '#ffaa00', borderBottomColor: '#ffaa00' }]} />
+      </TouchableOpacity>
+
       {!servicesReady && (
         <View style={styles.statusRow}>
-          <ActivityIndicator size="small" color="#00ffcc" />
-          <Text style={styles.statusText}>Bootstrapping secure services...</Text>
+          {appServicesError ? (
+            <Text style={[styles.statusText, { color: '#ff3333' }]}>Error: {appServicesError}</Text>
+          ) : (
+            <>
+              <ActivityIndicator size="small" color="#00ffcc" />
+              <Text style={styles.statusText}>Bootstrapping secure services...</Text>
+            </>
+          )}
         </View>
       )}
     </View>
@@ -419,7 +456,8 @@ export default function EnrollmentScreen() {
             ref={camera}
             style={StyleSheet.absoluteFill}
             device={device}
-            isActive={phase === 'CAPTURING'}
+            format={format}
+            isActive={phase === 'CAPTURING' && isFocused}
             photo={true}
           />
         ) : (
@@ -504,13 +542,6 @@ export default function EnrollmentScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* Tech stats */}
-      <View style={styles.perfBar}>
-        <Text style={styles.perfText}>
-          MobileFaceNet 112×112 | INT8 1.4MB |{' '}
-          {isFaceDetected ? 'FACE: YES' : 'FACE: NO'}
-        </Text>
-      </View>
     </View>
   );
 

@@ -1,17 +1,25 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: nhaihackathon
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: netra-app
 
 service: netra-sync-service
 
 provider:
   name: aws
   runtime: nodejs18.x
-  region: ap-south-1
+  region: us-east-1
   iam:
     role:
       statements:
         - Effect: Allow
           Action:
             - s3:PutObject
-          Resource: "arn:aws:s3:::attendance-records-netra/*"
+            - s3:GetObject
+            - s3:ListBucket
+          Resource: 
+            - "arn:aws:s3:::attendance-records-netra-virginia/*"
+            - "arn:aws:s3:::attendance-records-netra-virginia"
 
 functions:
   syncHandler:
@@ -21,13 +29,21 @@ functions:
           path: sync
           method: post
           cors: true
+          
+  getPersonnelHandler:
+    handler: handler.getPersonnel
+    events:
+      - http:
+          path: personnel
+          method: get
+          cors: true
 
 resources:
   Resources:
     NetraRecordsBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: attendance-records-netra
+        BucketName: attendance-records-netra-virginia
         BucketEncryption:
           ServerSideEncryptionConfiguration:
             - ServerSideEncryptionByDefault:

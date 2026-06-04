@@ -4,20 +4,27 @@
     "servicePath": "C:\\Users\\SAHIL KAJARE\\Desktop\\nhai\\aws\\serverless.yml",
     "serviceConfigFileName": "serverless.yml",
     "service": {
+      "org": "nhaihackathon",
+      "app": "netra-app",
       "service": "netra-sync-service",
       "provider": {
         "name": "aws",
         "runtime": "nodejs18.x",
-        "region": "ap-south-1",
+        "region": "us-east-1",
         "iam": {
           "role": {
             "statements": [
               {
                 "Effect": "Allow",
                 "Action": [
-                  "s3:PutObject"
+                  "s3:PutObject",
+                  "s3:GetObject",
+                  "s3:ListBucket"
                 ],
-                "Resource": "arn:aws:s3:::attendance-records-netra/*"
+                "Resource": [
+                  "arn:aws:s3:::attendance-records-netra-virginia/*",
+                  "arn:aws:s3:::attendance-records-netra-virginia"
+                ]
               }
             ]
           }
@@ -32,6 +39,12 @@
               "Type": "AWS::Logs::LogGroup",
               "Properties": {
                 "LogGroupName": "/aws/lambda/netra-sync-service-dev-syncHandler"
+              }
+            },
+            "GetPersonnelHandlerLogGroup": {
+              "Type": "AWS::Logs::LogGroup",
+              "Properties": {
+                "LogGroupName": "/aws/lambda/netra-sync-service-dev-getPersonnelHandler"
               }
             },
             "IamRoleLambdaExecution": {
@@ -95,9 +108,14 @@
                         {
                           "Effect": "Allow",
                           "Action": [
-                            "s3:PutObject"
+                            "s3:PutObject",
+                            "s3:GetObject",
+                            "s3:ListBucket"
                           ],
-                          "Resource": "arn:aws:s3:::attendance-records-netra/*"
+                          "Resource": [
+                            "arn:aws:s3:::attendance-records-netra-virginia/*",
+                            "arn:aws:s3:::attendance-records-netra-virginia"
+                          ]
                         }
                       ]
                     }
@@ -123,8 +141,8 @@
               "Type": "AWS::Lambda::Function",
               "Properties": {
                 "Code": {
-                  "S3Bucket": "serverless-framework-deployments-ap-south-1-5ffad075-ae25",
-                  "S3Key": "serverless/netra-sync-service/dev/1780494451003-2026-06-03T13:47:31.003Z/netra-sync-service.zip"
+                  "S3Bucket": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
+                  "S3Key": "serverless/netra-sync-service/dev/1780583419111-2026-06-04T14:30:19.111Z/netra-sync-service.zip"
                 },
                 "Handler": "handler.sync",
                 "Runtime": "nodejs18.x",
@@ -142,14 +160,47 @@
                 "SyncHandlerLogGroup"
               ]
             },
-            "SyncHandlerLambdaVersionHY4Nw896eSlMr9WglWPRcskq1bQuNIwVeie8pIoY": {
+            "GetPersonnelHandlerLambdaFunction": {
+              "Type": "AWS::Lambda::Function",
+              "Properties": {
+                "Code": {
+                  "S3Bucket": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
+                  "S3Key": "serverless/netra-sync-service/dev/1780583419111-2026-06-04T14:30:19.111Z/netra-sync-service.zip"
+                },
+                "Handler": "handler.getPersonnel",
+                "Runtime": "nodejs18.x",
+                "FunctionName": "netra-sync-service-dev-getPersonnelHandler",
+                "MemorySize": 1024,
+                "Timeout": 6,
+                "Role": {
+                  "Fn::GetAtt": [
+                    "IamRoleLambdaExecution",
+                    "Arn"
+                  ]
+                }
+              },
+              "DependsOn": [
+                "GetPersonnelHandlerLogGroup"
+              ]
+            },
+            "SyncHandlerLambdaVersionW2l2VgCVPzLwKEgcxLbHU1s2qwa2yHsCnSEy3l3ExvU": {
               "Type": "AWS::Lambda::Version",
               "DeletionPolicy": "Retain",
               "Properties": {
                 "FunctionName": {
                   "Ref": "SyncHandlerLambdaFunction"
                 },
-                "CodeSha256": "EW9sVTh8MH36YhFZ/PldFyPQFT4Vmum24kQwu1zkI48="
+                "CodeSha256": "CWyjmH2VCZ2Thxxr07HINM0wYpdgAzkFR3xCZh5G3FE="
+              }
+            },
+            "GetPersonnelHandlerLambdaVersionqcG5maUMivoj2EnGYu1mMKMrv0j543zVtING7x9Yg": {
+              "Type": "AWS::Lambda::Version",
+              "DeletionPolicy": "Retain",
+              "Properties": {
+                "FunctionName": {
+                  "Ref": "GetPersonnelHandlerLambdaFunction"
+                },
+                "CodeSha256": "CWyjmH2VCZ2Thxxr07HINM0wYpdgAzkFR3xCZh5G3FE="
               }
             },
             "ApiGatewayRestApi": {
@@ -174,6 +225,21 @@
                   ]
                 },
                 "PathPart": "sync",
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                }
+              }
+            },
+            "ApiGatewayResourcePersonnel": {
+              "Type": "AWS::ApiGateway::Resource",
+              "Properties": {
+                "ParentId": {
+                  "Fn::GetAtt": [
+                    "ApiGatewayRestApi",
+                    "RootResourceId"
+                  ]
+                },
+                "PathPart": "personnel",
                 "RestApiId": {
                   "Ref": "ApiGatewayRestApi"
                 }
@@ -218,6 +284,51 @@
                 },
                 "ResourceId": {
                   "Ref": "ApiGatewayResourceSync"
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                }
+              }
+            },
+            "ApiGatewayMethodPersonnelOptions": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "AuthorizationType": "NONE",
+                "HttpMethod": "OPTIONS",
+                "MethodResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": true,
+                      "method.response.header.Access-Control-Allow-Headers": true,
+                      "method.response.header.Access-Control-Allow-Methods": true
+                    },
+                    "ResponseModels": {}
+                  }
+                ],
+                "RequestParameters": {},
+                "Integration": {
+                  "Type": "MOCK",
+                  "RequestTemplates": {
+                    "application/json": "{statusCode:200}"
+                  },
+                  "ContentHandling": "CONVERT_TO_TEXT",
+                  "IntegrationResponses": [
+                    {
+                      "StatusCode": "200",
+                      "ResponseParameters": {
+                        "method.response.header.Access-Control-Allow-Origin": "'*'",
+                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                      },
+                      "ResponseTemplates": {
+                        "application/json": ""
+                      }
+                    }
+                  ]
+                },
+                "ResourceId": {
+                  "Ref": "ApiGatewayResourcePersonnel"
                 },
                 "RestApiId": {
                   "Ref": "ApiGatewayRestApi"
@@ -270,7 +381,53 @@
                 "SyncHandlerLambdaPermissionApiGateway"
               ]
             },
-            "ApiGatewayDeployment1780494436592": {
+            "ApiGatewayMethodPersonnelGet": {
+              "Type": "AWS::ApiGateway::Method",
+              "Properties": {
+                "HttpMethod": "GET",
+                "RequestParameters": {},
+                "ResourceId": {
+                  "Ref": "ApiGatewayResourcePersonnel"
+                },
+                "RestApiId": {
+                  "Ref": "ApiGatewayRestApi"
+                },
+                "ApiKeyRequired": "<REDACTED>",
+                "AuthorizationType": "NONE",
+                "Integration": {
+                  "IntegrationHttpMethod": "POST",
+                  "Type": "AWS_PROXY",
+                  "Uri": {
+                    "Fn::Join": [
+                      "",
+                      [
+                        "arn:",
+                        {
+                          "Ref": "AWS::Partition"
+                        },
+                        ":apigateway:",
+                        {
+                          "Ref": "AWS::Region"
+                        },
+                        ":lambda:path/2015-03-31/functions/",
+                        {
+                          "Fn::GetAtt": [
+                            "GetPersonnelHandlerLambdaFunction",
+                            "Arn"
+                          ]
+                        },
+                        "/invocations"
+                      ]
+                    ]
+                  }
+                },
+                "MethodResponses": []
+              },
+              "DependsOn": [
+                "GetPersonnelHandlerLambdaPermissionApiGateway"
+              ]
+            },
+            "ApiGatewayDeployment1780583410747": {
               "Type": "AWS::ApiGateway::Deployment",
               "Properties": {
                 "RestApiId": {
@@ -280,7 +437,9 @@
               },
               "DependsOn": [
                 "ApiGatewayMethodSyncOptions",
-                "ApiGatewayMethodSyncPost"
+                "ApiGatewayMethodPersonnelOptions",
+                "ApiGatewayMethodSyncPost",
+                "ApiGatewayMethodPersonnelGet"
               ]
             },
             "SyncHandlerLambdaPermissionApiGateway": {
@@ -320,10 +479,47 @@
                 }
               }
             },
+            "GetPersonnelHandlerLambdaPermissionApiGateway": {
+              "Type": "AWS::Lambda::Permission",
+              "Properties": {
+                "FunctionName": {
+                  "Fn::GetAtt": [
+                    "GetPersonnelHandlerLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "Action": "lambda:InvokeFunction",
+                "Principal": "apigateway.amazonaws.com",
+                "SourceArn": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":execute-api:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":",
+                      {
+                        "Ref": "AWS::AccountId"
+                      },
+                      ":",
+                      {
+                        "Ref": "ApiGatewayRestApi"
+                      },
+                      "/*/*"
+                    ]
+                  ]
+                }
+              }
+            },
             "NetraRecordsBucket": {
               "Type": "AWS::S3::Bucket",
               "Properties": {
-                "BucketName": "attendance-records-netra",
+                "BucketName": "attendance-records-netra-virginia",
                 "BucketEncryption": {
                   "ServerSideEncryptionConfiguration": [
                     {
@@ -338,7 +534,7 @@
           },
           "Outputs": {
             "ServerlessDeploymentBucketName": {
-              "Value": "serverless-framework-deployments-ap-south-1-5ffad075-ae25",
+              "Value": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
               "Export": {
                 "Name": "sls-netra-sync-service-dev-ServerlessDeploymentBucketName"
               }
@@ -346,10 +542,19 @@
             "SyncHandlerLambdaFunctionQualifiedArn": {
               "Description": "Current Lambda function version",
               "Value": {
-                "Ref": "SyncHandlerLambdaVersionHY4Nw896eSlMr9WglWPRcskq1bQuNIwVeie8pIoY"
+                "Ref": "SyncHandlerLambdaVersionW2l2VgCVPzLwKEgcxLbHU1s2qwa2yHsCnSEy3l3ExvU"
               },
               "Export": {
                 "Name": "sls-netra-sync-service-dev-SyncHandlerLambdaFunctionQualifiedArn"
+              }
+            },
+            "GetPersonnelHandlerLambdaFunctionQualifiedArn": {
+              "Description": "Current Lambda function version",
+              "Value": {
+                "Ref": "GetPersonnelHandlerLambdaVersionqcG5maUMivoj2EnGYu1mMKMrv0j543zVtING7x9Yg"
+              },
+              "Export": {
+                "Name": "sls-netra-sync-service-dev-GetPersonnelHandlerLambdaFunctionQualifiedArn"
               }
             },
             "ServiceEndpoint": {
@@ -417,7 +622,43 @@
           "timeout": 6,
           "runtime": "nodejs18.x",
           "vpc": {},
-          "versionLogicalId": "SyncHandlerLambdaVersionHY4Nw896eSlMr9WglWPRcskq1bQuNIwVeie8pIoY"
+          "versionLogicalId": "SyncHandlerLambdaVersionW2l2VgCVPzLwKEgcxLbHU1s2qwa2yHsCnSEy3l3ExvU"
+        },
+        "getPersonnelHandler": {
+          "handler": "handler.getPersonnel",
+          "events": [
+            {
+              "http": {
+                "path": "personnel",
+                "method": "get",
+                "cors": {
+                  "origin": "*",
+                  "methods": [
+                    "OPTIONS",
+                    "GET"
+                  ],
+                  "headers": [
+                    "Content-Type",
+                    "X-Amz-Date",
+                    "Authorization",
+                    "X-Api-Key",
+                    "X-Amz-Security-Token",
+                    "X-Amz-User-Agent",
+                    "X-Amzn-Trace-Id"
+                  ],
+                  "allowCredentials": "<REDACTED>"
+                },
+                "integration": "AWS_PROXY"
+              }
+            }
+          ],
+          "name": "netra-sync-service-dev-getPersonnelHandler",
+          "package": {},
+          "memory": 1024,
+          "timeout": 6,
+          "runtime": "nodejs18.x",
+          "vpc": {},
+          "versionLogicalId": "GetPersonnelHandlerLambdaVersionqcG5maUMivoj2EnGYu1mMKMrv0j543zVtING7x9Yg"
         }
       },
       "resources": {
@@ -425,7 +666,7 @@
           "NetraRecordsBucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
-              "BucketName": "attendance-records-netra",
+              "BucketName": "attendance-records-netra-virginia",
               "BucketEncryption": {
                 "ServerSideEncryptionConfiguration": [
                   {
@@ -444,16 +685,21 @@
     "provider": {
       "name": "aws",
       "runtime": "nodejs18.x",
-      "region": "ap-south-1",
+      "region": "us-east-1",
       "iam": {
         "role": {
           "statements": [
             {
               "Effect": "Allow",
               "Action": [
-                "s3:PutObject"
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:ListBucket"
               ],
-              "Resource": "arn:aws:s3:::attendance-records-netra/*"
+              "Resource": [
+                "arn:aws:s3:::attendance-records-netra-virginia/*",
+                "arn:aws:s3:::attendance-records-netra-virginia"
+              ]
             }
           ]
         }
@@ -468,6 +714,12 @@
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
               "LogGroupName": "/aws/lambda/netra-sync-service-dev-syncHandler"
+            }
+          },
+          "GetPersonnelHandlerLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/netra-sync-service-dev-getPersonnelHandler"
             }
           },
           "IamRoleLambdaExecution": {
@@ -531,9 +783,14 @@
                       {
                         "Effect": "Allow",
                         "Action": [
-                          "s3:PutObject"
+                          "s3:PutObject",
+                          "s3:GetObject",
+                          "s3:ListBucket"
                         ],
-                        "Resource": "arn:aws:s3:::attendance-records-netra/*"
+                        "Resource": [
+                          "arn:aws:s3:::attendance-records-netra-virginia/*",
+                          "arn:aws:s3:::attendance-records-netra-virginia"
+                        ]
                       }
                     ]
                   }
@@ -559,8 +816,8 @@
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
-                "S3Bucket": "serverless-framework-deployments-ap-south-1-5ffad075-ae25",
-                "S3Key": "serverless/netra-sync-service/dev/1780494451003-2026-06-03T13:47:31.003Z/netra-sync-service.zip"
+                "S3Bucket": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
+                "S3Key": "serverless/netra-sync-service/dev/1780583419111-2026-06-04T14:30:19.111Z/netra-sync-service.zip"
               },
               "Handler": "handler.sync",
               "Runtime": "nodejs18.x",
@@ -578,14 +835,47 @@
               "SyncHandlerLogGroup"
             ]
           },
-          "SyncHandlerLambdaVersionHY4Nw896eSlMr9WglWPRcskq1bQuNIwVeie8pIoY": {
+          "GetPersonnelHandlerLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
+                "S3Key": "serverless/netra-sync-service/dev/1780583419111-2026-06-04T14:30:19.111Z/netra-sync-service.zip"
+              },
+              "Handler": "handler.getPersonnel",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "netra-sync-service-dev-getPersonnelHandler",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetPersonnelHandlerLogGroup"
+            ]
+          },
+          "SyncHandlerLambdaVersionW2l2VgCVPzLwKEgcxLbHU1s2qwa2yHsCnSEy3l3ExvU": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "SyncHandlerLambdaFunction"
               },
-              "CodeSha256": "EW9sVTh8MH36YhFZ/PldFyPQFT4Vmum24kQwu1zkI48="
+              "CodeSha256": "CWyjmH2VCZ2Thxxr07HINM0wYpdgAzkFR3xCZh5G3FE="
+            }
+          },
+          "GetPersonnelHandlerLambdaVersionqcG5maUMivoj2EnGYu1mMKMrv0j543zVtING7x9Yg": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetPersonnelHandlerLambdaFunction"
+              },
+              "CodeSha256": "CWyjmH2VCZ2Thxxr07HINM0wYpdgAzkFR3xCZh5G3FE="
             }
           },
           "ApiGatewayRestApi": {
@@ -610,6 +900,21 @@
                 ]
               },
               "PathPart": "sync",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourcePersonnel": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "personnel",
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
@@ -654,6 +959,51 @@
               },
               "ResourceId": {
                 "Ref": "ApiGatewayResourceSync"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodPersonnelOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourcePersonnel"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
@@ -706,7 +1056,53 @@
               "SyncHandlerLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1780494436592": {
+          "ApiGatewayMethodPersonnelGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourcePersonnel"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": "<REDACTED>",
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetPersonnelHandlerLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GetPersonnelHandlerLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayDeployment1780583410747": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -716,7 +1112,9 @@
             },
             "DependsOn": [
               "ApiGatewayMethodSyncOptions",
-              "ApiGatewayMethodSyncPost"
+              "ApiGatewayMethodPersonnelOptions",
+              "ApiGatewayMethodSyncPost",
+              "ApiGatewayMethodPersonnelGet"
             ]
           },
           "SyncHandlerLambdaPermissionApiGateway": {
@@ -756,10 +1154,47 @@
               }
             }
           },
+          "GetPersonnelHandlerLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetPersonnelHandlerLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
           "NetraRecordsBucket": {
             "Type": "AWS::S3::Bucket",
             "Properties": {
-              "BucketName": "attendance-records-netra",
+              "BucketName": "attendance-records-netra-virginia",
               "BucketEncryption": {
                 "ServerSideEncryptionConfiguration": [
                   {
@@ -774,7 +1209,7 @@
         },
         "Outputs": {
           "ServerlessDeploymentBucketName": {
-            "Value": "serverless-framework-deployments-ap-south-1-5ffad075-ae25",
+            "Value": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
             "Export": {
               "Name": "sls-netra-sync-service-dev-ServerlessDeploymentBucketName"
             }
@@ -782,10 +1217,19 @@
           "SyncHandlerLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "SyncHandlerLambdaVersionHY4Nw896eSlMr9WglWPRcskq1bQuNIwVeie8pIoY"
+              "Ref": "SyncHandlerLambdaVersionW2l2VgCVPzLwKEgcxLbHU1s2qwa2yHsCnSEy3l3ExvU"
             },
             "Export": {
               "Name": "sls-netra-sync-service-dev-SyncHandlerLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetPersonnelHandlerLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetPersonnelHandlerLambdaVersionqcG5maUMivoj2EnGYu1mMKMrv0j543zVtING7x9Yg"
+            },
+            "Export": {
+              "Name": "sls-netra-sync-service-dev-GetPersonnelHandlerLambdaFunctionQualifiedArn"
             }
           },
           "ServiceEndpoint": {
@@ -819,45 +1263,56 @@
       "vpc": {}
     },
     "dashboard": {
-      "isEnabledForService": false,
+      "isEnabledForService": true,
       "requiredAuthentication": false,
-      "orgFeaturesInUse": null,
+      "orgFeaturesInUse": {
+        "providers": false,
+        "monitoring": false
+      },
       "orgObservabilityIntegrations": null,
-      "serviceAppId": null,
+      "serviceAppId": "6xgMpzSglGf5hxhty5",
       "serviceProvider": null,
       "instanceParameters": null
     },
-    "serviceRawFile": "\nservice: netra-sync-service\n\nprovider:\n  name: aws\n  runtime: nodejs18.x\n  region: ap-south-1\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - s3:PutObject\n          Resource: \"arn:aws:s3:::attendance-records-netra/*\"\n\nfunctions:\n  syncHandler:\n    handler: handler.sync\n    events:\n      - http:\n          path: sync\n          method: post\n          cors: true\n\nresources:\n  Resources:\n    NetraRecordsBucket:\n      Type: AWS::S3::Bucket\n      Properties:\n        BucketName: attendance-records-netra\n        BucketEncryption:\n          ServerSideEncryptionConfiguration:\n            - ServerSideEncryptionByDefault:\n                SSEAlgorithm: AES256\n",
+    "serviceRawFile": "# \"org\" ensures this Service is used with the correct Serverless Framework Access Key.\norg: nhaihackathon\n# \"app\" enables Serverless Framework Dashboard features and sharing them with other Services.\napp: netra-app\n\nservice: netra-sync-service\n\nprovider:\n  name: aws\n  runtime: nodejs18.x\n  region: us-east-1\n  iam:\n    role:\n      statements:\n        - Effect: Allow\n          Action:\n            - s3:PutObject\n            - s3:GetObject\n            - s3:ListBucket\n          Resource: \n            - \"arn:aws:s3:::attendance-records-netra-virginia/*\"\n            - \"arn:aws:s3:::attendance-records-netra-virginia\"\n\nfunctions:\n  syncHandler:\n    handler: handler.sync\n    events:\n      - http:\n          path: sync\n          method: post\n          cors: true\n          \n  getPersonnelHandler:\n    handler: handler.getPersonnel\n    events:\n      - http:\n          path: personnel\n          method: get\n          cors: true\n\nresources:\n  Resources:\n    NetraRecordsBucket:\n      Type: AWS::S3::Bucket\n      Properties:\n        BucketName: attendance-records-netra-virginia\n        BucketEncryption:\n          ServerSideEncryptionConfiguration:\n            - ServerSideEncryptionByDefault:\n                SSEAlgorithm: AES256\n",
     "command": [
       "deploy"
     ],
-    "options": {},
+    "options": {
+      "aws-profile": "Mahesh-Marathe"
+    },
     "orgId": "98ab8c6f-0f54-4a7e-93ca-583758d40942",
     "orgName": "nhaihackathon",
     "userId": "7TqhrLCyNVdQ5xLs33",
     "userName": "nhaihackathon",
     "serviceProviderAwsAccountId": "430565345003",
     "serviceProviderAwsCfStackName": "netra-sync-service-dev",
-    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:ap-south-1:430565345003:stack/netra-sync-service-dev/7ffbdb00-5f15-11f1-9ddb-067565fde9d1",
-    "serviceProviderAwsCfStackCreated": "2026-06-03T06:28:57.789Z",
+    "serviceProviderAwsCfStackId": "arn:aws:cloudformation:us-east-1:430565345003:stack/netra-sync-service-dev/042d9740-6021-11f1-b1ee-0ebb1b586365",
+    "serviceProviderAwsCfStackCreated": "2026-06-04T14:23:54.679Z",
     "serviceProviderAwsCfStackUpdated": null,
     "serviceProviderAwsCfStackStatus": "CREATE_COMPLETE",
     "serviceProviderAwsCfStackOutputs": [
       {
+        "OutputKey": "GetPersonnelHandlerLambdaFunctionQualifiedArn",
+        "OutputValue": "arn:aws:lambda:us-east-1:430565345003:function:netra-sync-service-dev-getPersonnelHandler:1",
+        "Description": "Current Lambda function version",
+        "ExportName": "sls-netra-sync-service-dev-GetPersonnelHandlerLambdaFunctionQualifiedArn"
+      },
+      {
         "OutputKey": "SyncHandlerLambdaFunctionQualifiedArn",
-        "OutputValue": "arn:aws:lambda:ap-south-1:430565345003:function:netra-sync-service-dev-syncHandler:1",
+        "OutputValue": "arn:aws:lambda:us-east-1:430565345003:function:netra-sync-service-dev-syncHandler:1",
         "Description": "Current Lambda function version",
         "ExportName": "sls-netra-sync-service-dev-SyncHandlerLambdaFunctionQualifiedArn"
       },
       {
         "OutputKey": "ServiceEndpoint",
-        "OutputValue": "https://bdni2oxgh2.execute-api.ap-south-1.amazonaws.com/dev",
+        "OutputValue": "https://01athtsk9d.execute-api.us-east-1.amazonaws.com/dev",
         "Description": "URL of the service endpoint",
         "ExportName": "sls-netra-sync-service-dev-ServiceEndpoint"
       },
       {
         "OutputKey": "ServerlessDeploymentBucketName",
-        "OutputValue": "serverless-framework-deployments-ap-south-1-5ffad075-ae25",
+        "OutputValue": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
         "ExportName": "sls-netra-sync-service-dev-ServerlessDeploymentBucketName"
       }
     ],
@@ -869,6 +1324,12 @@
           "Type": "AWS::Logs::LogGroup",
           "Properties": {
             "LogGroupName": "/aws/lambda/netra-sync-service-dev-syncHandler"
+          }
+        },
+        "GetPersonnelHandlerLogGroup": {
+          "Type": "AWS::Logs::LogGroup",
+          "Properties": {
+            "LogGroupName": "/aws/lambda/netra-sync-service-dev-getPersonnelHandler"
           }
         },
         "IamRoleLambdaExecution": {
@@ -932,9 +1393,14 @@
                     {
                       "Effect": "Allow",
                       "Action": [
-                        "s3:PutObject"
+                        "s3:PutObject",
+                        "s3:GetObject",
+                        "s3:ListBucket"
                       ],
-                      "Resource": "arn:aws:s3:::attendance-records-netra/*"
+                      "Resource": [
+                        "arn:aws:s3:::attendance-records-netra-virginia/*",
+                        "arn:aws:s3:::attendance-records-netra-virginia"
+                      ]
                     }
                   ]
                 }
@@ -960,8 +1426,8 @@
           "Type": "AWS::Lambda::Function",
           "Properties": {
             "Code": {
-              "S3Bucket": "serverless-framework-deployments-ap-south-1-5ffad075-ae25",
-              "S3Key": "serverless/netra-sync-service/dev/1780494451003-2026-06-03T13:47:31.003Z/netra-sync-service.zip"
+              "S3Bucket": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
+              "S3Key": "serverless/netra-sync-service/dev/1780583419111-2026-06-04T14:30:19.111Z/netra-sync-service.zip"
             },
             "Handler": "handler.sync",
             "Runtime": "nodejs18.x",
@@ -979,14 +1445,47 @@
             "SyncHandlerLogGroup"
           ]
         },
-        "SyncHandlerLambdaVersionHY4Nw896eSlMr9WglWPRcskq1bQuNIwVeie8pIoY": {
+        "GetPersonnelHandlerLambdaFunction": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Code": {
+              "S3Bucket": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
+              "S3Key": "serverless/netra-sync-service/dev/1780583419111-2026-06-04T14:30:19.111Z/netra-sync-service.zip"
+            },
+            "Handler": "handler.getPersonnel",
+            "Runtime": "nodejs18.x",
+            "FunctionName": "netra-sync-service-dev-getPersonnelHandler",
+            "MemorySize": 1024,
+            "Timeout": 6,
+            "Role": {
+              "Fn::GetAtt": [
+                "IamRoleLambdaExecution",
+                "Arn"
+              ]
+            }
+          },
+          "DependsOn": [
+            "GetPersonnelHandlerLogGroup"
+          ]
+        },
+        "SyncHandlerLambdaVersionW2l2VgCVPzLwKEgcxLbHU1s2qwa2yHsCnSEy3l3ExvU": {
           "Type": "AWS::Lambda::Version",
           "DeletionPolicy": "Retain",
           "Properties": {
             "FunctionName": {
               "Ref": "SyncHandlerLambdaFunction"
             },
-            "CodeSha256": "EW9sVTh8MH36YhFZ/PldFyPQFT4Vmum24kQwu1zkI48="
+            "CodeSha256": "CWyjmH2VCZ2Thxxr07HINM0wYpdgAzkFR3xCZh5G3FE="
+          }
+        },
+        "GetPersonnelHandlerLambdaVersionqcG5maUMivoj2EnGYu1mMKMrv0j543zVtING7x9Yg": {
+          "Type": "AWS::Lambda::Version",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "FunctionName": {
+              "Ref": "GetPersonnelHandlerLambdaFunction"
+            },
+            "CodeSha256": "CWyjmH2VCZ2Thxxr07HINM0wYpdgAzkFR3xCZh5G3FE="
           }
         },
         "ApiGatewayRestApi": {
@@ -1011,6 +1510,21 @@
               ]
             },
             "PathPart": "sync",
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayResourcePersonnel": {
+          "Type": "AWS::ApiGateway::Resource",
+          "Properties": {
+            "ParentId": {
+              "Fn::GetAtt": [
+                "ApiGatewayRestApi",
+                "RootResourceId"
+              ]
+            },
+            "PathPart": "personnel",
             "RestApiId": {
               "Ref": "ApiGatewayRestApi"
             }
@@ -1055,6 +1569,51 @@
             },
             "ResourceId": {
               "Ref": "ApiGatewayResourceSync"
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "ApiGatewayMethodPersonnelOptions": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "AuthorizationType": "NONE",
+            "HttpMethod": "OPTIONS",
+            "MethodResponses": [
+              {
+                "StatusCode": "200",
+                "ResponseParameters": {
+                  "method.response.header.Access-Control-Allow-Origin": true,
+                  "method.response.header.Access-Control-Allow-Headers": true,
+                  "method.response.header.Access-Control-Allow-Methods": true
+                },
+                "ResponseModels": {}
+              }
+            ],
+            "RequestParameters": {},
+            "Integration": {
+              "Type": "MOCK",
+              "RequestTemplates": {
+                "application/json": "{statusCode:200}"
+              },
+              "ContentHandling": "CONVERT_TO_TEXT",
+              "IntegrationResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": "'*'",
+                    "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                    "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                  },
+                  "ResponseTemplates": {
+                    "application/json": ""
+                  }
+                }
+              ]
+            },
+            "ResourceId": {
+              "Ref": "ApiGatewayResourcePersonnel"
             },
             "RestApiId": {
               "Ref": "ApiGatewayRestApi"
@@ -1107,7 +1666,53 @@
             "SyncHandlerLambdaPermissionApiGateway"
           ]
         },
-        "ApiGatewayDeployment1780494436592": {
+        "ApiGatewayMethodPersonnelGet": {
+          "Type": "AWS::ApiGateway::Method",
+          "Properties": {
+            "HttpMethod": "GET",
+            "RequestParameters": {},
+            "ResourceId": {
+              "Ref": "ApiGatewayResourcePersonnel"
+            },
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            },
+            "ApiKeyRequired": "<REDACTED>",
+            "AuthorizationType": "NONE",
+            "Integration": {
+              "IntegrationHttpMethod": "POST",
+              "Type": "AWS_PROXY",
+              "Uri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "Fn::GetAtt": [
+                        "GetPersonnelHandlerLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    "/invocations"
+                  ]
+                ]
+              }
+            },
+            "MethodResponses": []
+          },
+          "DependsOn": [
+            "GetPersonnelHandlerLambdaPermissionApiGateway"
+          ]
+        },
+        "ApiGatewayDeployment1780583410747": {
           "Type": "AWS::ApiGateway::Deployment",
           "Properties": {
             "RestApiId": {
@@ -1117,7 +1722,9 @@
           },
           "DependsOn": [
             "ApiGatewayMethodSyncOptions",
-            "ApiGatewayMethodSyncPost"
+            "ApiGatewayMethodPersonnelOptions",
+            "ApiGatewayMethodSyncPost",
+            "ApiGatewayMethodPersonnelGet"
           ]
         },
         "SyncHandlerLambdaPermissionApiGateway": {
@@ -1157,10 +1764,47 @@
             }
           }
         },
+        "GetPersonnelHandlerLambdaPermissionApiGateway": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "GetPersonnelHandlerLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "apigateway.amazonaws.com",
+            "SourceArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:",
+                  {
+                    "Ref": "AWS::Partition"
+                  },
+                  ":execute-api:",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ":",
+                  {
+                    "Ref": "AWS::AccountId"
+                  },
+                  ":",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  "/*/*"
+                ]
+              ]
+            }
+          }
+        },
         "NetraRecordsBucket": {
           "Type": "AWS::S3::Bucket",
           "Properties": {
-            "BucketName": "attendance-records-netra",
+            "BucketName": "attendance-records-netra-virginia",
             "BucketEncryption": {
               "ServerSideEncryptionConfiguration": [
                 {
@@ -1175,7 +1819,7 @@
       },
       "Outputs": {
         "ServerlessDeploymentBucketName": {
-          "Value": "serverless-framework-deployments-ap-south-1-5ffad075-ae25",
+          "Value": "serverless-framework-deployments-us-east-1-3f0b8089-e43b",
           "Export": {
             "Name": "sls-netra-sync-service-dev-ServerlessDeploymentBucketName"
           }
@@ -1183,10 +1827,19 @@
         "SyncHandlerLambdaFunctionQualifiedArn": {
           "Description": "Current Lambda function version",
           "Value": {
-            "Ref": "SyncHandlerLambdaVersionHY4Nw896eSlMr9WglWPRcskq1bQuNIwVeie8pIoY"
+            "Ref": "SyncHandlerLambdaVersionW2l2VgCVPzLwKEgcxLbHU1s2qwa2yHsCnSEy3l3ExvU"
           },
           "Export": {
             "Name": "sls-netra-sync-service-dev-SyncHandlerLambdaFunctionQualifiedArn"
+          }
+        },
+        "GetPersonnelHandlerLambdaFunctionQualifiedArn": {
+          "Description": "Current Lambda function version",
+          "Value": {
+            "Ref": "GetPersonnelHandlerLambdaVersionqcG5maUMivoj2EnGYu1mMKMrv0j543zVtING7x9Yg"
+          },
+          "Export": {
+            "Name": "sls-netra-sync-service-dev-GetPersonnelHandlerLambdaFunctionQualifiedArn"
           }
         },
         "ServiceEndpoint": {

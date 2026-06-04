@@ -22,6 +22,7 @@ export default function ResultScreen() {
   const confidence: number = route.params?.confidence ?? 0;
   const spoofScore: number = route.params?.spoofScore ?? 0.05;
   const personId: number = route.params?.personId ?? 1;
+  const personName: string = route.params?.personName ?? 'Unknown Personnel';
   const livenessMethod: string =
     route.params?.livenessMethod ?? 'MiniFASNet + BlazeFace';
 
@@ -255,6 +256,14 @@ export default function ResultScreen() {
             style={[styles.scanLine, { top: scanLineTop, backgroundColor: accent }]}
           />
 
+          {/* Personnel Name */}
+          <Text style={[styles.statLabel, { color: accent }]}>
+            AUTHORIZED PERSONNEL
+          </Text>
+          <Text style={[styles.statValue, { color: accent, fontSize: 22, marginBottom: 15 }]}>
+            {personName}
+          </Text>
+
           {/* Confidence */}
           <Text style={[styles.statLabel, { color: accent }]}>
             FACENET CONFIDENCE SCORE
@@ -278,20 +287,6 @@ export default function ResultScreen() {
 
           {/* Divider */}
           <View style={[styles.divider, { backgroundColor: accentBorder }]} />
-
-          {/* Technical details */}
-          <Text style={[styles.techLabel, { color: accent }]}>
-            Model: MobileFaceNet + ArcFace
-          </Text>
-          <Text style={[styles.techLabel, { color: accent }]}>
-            Inference: ~42ms (INT8 1.4MB)
-          </Text>
-          <Text style={[styles.techLabel, { color: accent }]}>
-            Resolution: 112x112 px Crop
-          </Text>
-          <Text style={[styles.techLabel, { color: accent }]}>
-            Anti-Spoof: {livenessMethod}
-          </Text>
 
           {/* Divider */}
           <View style={[styles.divider, { backgroundColor: accentBorder }]} />
@@ -331,35 +326,17 @@ export default function ResultScreen() {
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={[styles.cyberButton, { borderColor: accent }]}
-            onPress={() => navigation.navigate('Authentication')}
+            onPress={() => navigation.navigate('Enrollment')}
             activeOpacity={0.8}
           >
             <View style={[styles.buttonEdge, styles.buttonEdgeLeft, { backgroundColor: accent }]} />
             <Text style={[styles.buttonText, { color: accent }]}>
-              [ AUTHENTICATE ANOTHER ]
+              [ BACK TO ENROLLMENT ]
             </Text>
             <View style={[styles.buttonEdge, styles.buttonEdgeRight, { backgroundColor: accent }]} />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.cyberButton, styles.secondaryButton, { borderColor: accentBorder }]}
-            onPress={() => navigation.navigate('Enrollment')}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.buttonEdge, styles.buttonEdgeLeft, { backgroundColor: accentBorder }]} />
-            <Text style={[styles.buttonText, { color: 'rgba(255,255,255,0.6)' }]}>
-              [ BACK TO ENROLLMENT ]
-            </Text>
-            <View style={[styles.buttonEdge, styles.buttonEdgeRight, { backgroundColor: accentBorder }]} />
-          </TouchableOpacity>
         </View>
 
-        {/* ── Bottom HUD bar ───────────────────────────────────────────── */}
-        <View style={[styles.perfBar, { borderColor: accentBorder, backgroundColor: accentDim }]}>
-          <Text style={[styles.perfText, { color: accent }]}>
-            JSI: ENABLED │ SQLCipher: AES-256 │ TFLite: INT8 │ DEVICE: SECURE
-          </Text>
-        </View>
       </Animated.View>
     </View>
   );

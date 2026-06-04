@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, Animated, Easing, TouchableOpacity } from 'react-native';
+import { useNavigation, useRoute, useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { useCallback } from 'react';
 import { Camera } from 'react-native-vision-camera';
 import { useCameraInfo } from '../hooks/useCamera';
 
@@ -9,14 +10,15 @@ const CHALLENGE_DURATION_SEC = 5;
 
 export default function LivenessChallengeScreen() {
   const navigation = useNavigation<any>();
-  const { device, hasPermission, livenessScore, isFaceDetected, processPhoto } = useCameraInfo();
+  const route = useRoute<any>();
+  const isFocused = useIsFocused();
+  const { device, format, hasPermission, livenessScore, isFaceDetected, processPhoto, modelsLoaded } = useCameraInfo();
   const camera = useRef<Camera>(null);
   const [countdown, setCountdown] = useState(CHALLENGE_DURATION_SEC);
   const [scores, setScores] = useState<number[]>([]);
   const reticleAnim = useRef(new Animated.Value(1)).current;
   const meshOpacity = useRef(new Animated.Value(0.3)).current;
   const statusPulse = useRef(new Animated.Value(0)).current;
-
   // Face Landmarks simulation for UI coolness
   const points = useMemo(() => [
     { top: '30%', left: '42%' }, { top: '30%', left: '58%' }, // Eyes
@@ -28,13 +30,24 @@ export default function LivenessChallengeScreen() {
     { top: '42%', left: '32%' }, { top: '42%', left: '68%' }, // Cheeks
   ], []);
 
+  const hasNavigated = useRef(false);
+
+  // Reset state on focus
+  useFocusEffect(
+    useCallback(() => {
+      setCountdown(CHALLENGE_DURATION_SEC);
+      setScores([]);
+      hasNavigated.current = false;
+    }, [])
+  );
+
   // Collect liveness scores during the challenge
   useEffect(() => {
     let isActive = true;
     let isProcessing = false;
 
     const processLoop = async () => {
-      if (!isActive) return;
+      if (!isActive || !isFocused) return;
       if (isProcessing) {
         setTimeout(processLoop, 200);
         return;
@@ -42,26 +55,32 @@ export default function LivenessChallengeScreen() {
 
       isProcessing = true;
       try {
-        if (camera.current) {
+        if (camera.current != null && device != null && isFocused && hasPermission) {
           const photo = await camera.current.takePhoto({ qualityPrioritization: 'speed' });
           if (photo && photo.path) {
             // Note: processPhoto sets the livenessScore in useCameraInfo state
             await processPhoto(photo.path);
           }
         }
-      } catch (err) {
-        // Silently catch camera errors
+      } catch (err: any) {
+        if (err && err.message && (err.message.includes('Camera is closed') || err.message.includes('Failed to submit capture request'))) {
+          // Normal during navigation, ignore
+        } else {
+          console.warn('Liveness camera error:', err);
+        }
       }
       isProcessing = false;
       setTimeout(processLoop, 500); // Take a photo every 500ms for liveness
     };
 
-    processLoop();
+    if (isFocused && modelsLoaded) {
+      processLoop();
+    }
 
     return () => {
       isActive = false;
     };
-  }, [processPhoto]);
+  }, [processPhoto, isFocused, modelsLoaded, device, hasPermission]);
 
   useEffect(() => {
     if (livenessScore > 0 && countdown > 0) {
@@ -94,6 +113,7 @@ export default function LivenessChallengeScreen() {
       ])
     ).start();
 
+    if (!isFocused) return;
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -104,11 +124,12 @@ export default function LivenessChallengeScreen() {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [reticleAnim, meshOpacity, statusPulse]);
+  }, [reticleAnim, meshOpacity, statusPulse, isFocused]);
 
   // Handle side-effects (navigation) strictly outside the render/state-update phase
   useEffect(() => {
-    if (countdown === 0) {
+    if (countdown === 0 && !hasNavigated.current) {
+      hasNavigated.current = true;
       // Evaluate liveness based on collected scores
       const avgScore = scores.length > 0
         ? scores.reduce((a, b) => a + b, 0) / scores.length
@@ -117,14 +138,19 @@ export default function LivenessChallengeScreen() {
       const isLive = avgScore >= LIVENESS_THRESHOLD;
       const spoofProbability = Math.max(0, Math.min(1, 1 - (avgScore / 100)));
       
+      // Stop the process loop
+      setCountdown(-1);
+      
       navigation.navigate('Result', { 
         success: isLive, 
         confidence: parseFloat(avgScore.toFixed(1)), 
         spoofScore: parseFloat(spoofProbability.toFixed(3)),
-        livenessMethod: 'MiniFASNet + BlazeFace'
+        livenessMethod: 'MiniFASNet + BlazeFace',
+        personId: route.params?.personId,
+        personName: route.params?.personName
       });
     }
-  }, [countdown, navigation, scores, livenessScore]);
+  }, [countdown, navigation, scores, livenessScore, route.params]);
 
   const statusColor = statusPulse.interpolate({
     inputRange: [0, 1],
@@ -135,6 +161,10 @@ export default function LivenessChallengeScreen() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+        <Text style={styles.backButtonText}>{'<< ABORT'}</Text>
+      </TouchableOpacity>
+
       <View style={styles.hudHeader}>
         <Animated.View style={[styles.pulseOrange, { backgroundColor: statusColor }]} />
         <Text style={styles.header}>ACTIVE LIVENESS PROBE</Text>
@@ -146,7 +176,8 @@ export default function LivenessChallengeScreen() {
             ref={camera}
             style={StyleSheet.absoluteFill}
             device={device}
-            isActive={true}
+            format={format}
+            isActive={isFocused}
             photo={true}
           />
         )}
@@ -182,21 +213,15 @@ export default function LivenessChallengeScreen() {
         <Text style={styles.statusText}>Samples: {scores.length}</Text>
       </View>
       
-      <View style={styles.statsContainer}>
-        <Text style={styles.subtext}>MiniFASNet + MediaPipe Landmark Tracking...</Text>
-        <Text style={styles.metricText}>GPU AMP: ENABLED</Text>
-        <Text style={styles.metricText}>PARAMS: ~1.47M | INT8 QUANTIZED: 1.4MB</Text>
-        <Text style={styles.metricText}>HTER: 0.084 | TARGET FPS: 30</Text>
-        <Text style={styles.metricText}>THRESHOLD: {LIVENESS_THRESHOLD}% | AVG SCORE: {scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '--'}%</Text>
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#05070a' },
-  
-  hudHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 40 },
+  backButton: { position: 'absolute', top: 40, left: 20, paddingVertical: 8, paddingHorizontal: 12, backgroundColor: 'rgba(255, 153, 0, 0.1)', borderWidth: 1, borderColor: '#ff9900', zIndex: 100 },
+  backButtonText: { color: '#ff9900', fontFamily: 'monospace', fontSize: 12, fontWeight: 'bold', letterSpacing: 1 },
+  hudHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 40, marginTop: 50, alignSelf: 'center' },
   pulseOrange: { width: 10, height: 10, borderRadius: 5, marginRight: 10, shadowColor: '#ff9900', shadowRadius: 10, shadowOpacity: 1, elevation: 5 },
   header: { fontSize: 16, fontWeight: 'bold', color: '#ff9900', letterSpacing: 2, fontFamily: 'monospace' },
   

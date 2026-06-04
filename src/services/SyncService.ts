@@ -2,7 +2,7 @@ import axios from 'axios';
 import NetInfo, { NetInfoSubscription } from '@react-native-community/netinfo';
 import { StorageService } from './StorageService';
 
-const API_ENDPOINT = 'https://bdni2oxgh2.execute-api.ap-south-1.amazonaws.com/dev/sync';
+const API_ENDPOINT = 'https://01athtsk9d.execute-api.us-east-1.amazonaws.com/dev/sync';
 const MAX_RETRIES = 3;
 const BATCH_SIZE = 20;
 
@@ -20,7 +20,10 @@ export class SyncService {
   startNetworkListener() {
     this.unsubscribe = NetInfo.addEventListener(state => {
       if (state.isConnected && state.isInternetReachable) {
+        // Automatically push local changes to S3
         this.syncPendingRecords();
+        // Automatically pull remote changes from S3 in the background
+        this.fetchCloudPersonnel();
       }
     });
   }
@@ -74,7 +77,7 @@ export class SyncService {
 
         if (response.status === 200) {
           for (const record of batch) {
-            await this.storage.markSynced(record.queueId, record.record_id);
+            await this.storage.markSynced(record.queueId, record.record_id || record.id, record.type);
           }
           return; // Success — exit retry loop
         }
@@ -92,5 +95,33 @@ export class SyncService {
         }
       }
     }
+  }
+
+  async fetchCloudPersonnel(): Promise<number> {
+    try {
+      const getUrl = API_ENDPOINT.replace('/sync', '/personnel');
+      const response = await axios.get(getUrl, { timeout: 15000 });
+      if (response.status === 200 && response.data && response.data.personnel) {
+        let addedCount = 0;
+        const localPersonnel = await this.storage.getAllPersonnel();
+        const localNames = new Set(localPersonnel.map(p => p.name));
+        
+        for (const cloudPerson of response.data.personnel) {
+          if (!localNames.has(cloudPerson.name) && cloudPerson.embedding_blob) {
+            // Save cloud user locally, bypassing the sync queue (so it doesn't upload again)
+            const db = (this.storage as any).ensureDB();
+            await db.executeSql(
+              'INSERT INTO Personnel (name, embedding_blob, embedding_checksum) VALUES (?, ?, ?)',
+              [cloudPerson.name, cloudPerson.embedding_blob, cloudPerson.embedding_checksum]
+            );
+            addedCount++;
+          }
+        }
+        return addedCount;
+      }
+    } catch (error) {
+      console.warn('Failed to fetch cloud personnel:', error);
+    }
+    return 0;
   }
 }

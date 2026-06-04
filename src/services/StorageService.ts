@@ -55,7 +55,12 @@ export class StorageService {
       'INSERT INTO Personnel (name, embedding_blob, embedding_checksum) VALUES (?, ?, ?)',
       [name, embedding, checksum]
     );
-    return results.insertId;
+    const personId = results.insertId;
+    await db.executeSql(
+      'INSERT INTO SyncQueue (record_id, type) VALUES (?, ?)',
+      [personId, 'PERSONNEL']
+    );
+    return personId;
   }
 
   async getEmbedding(personId: number): Promise<string> {
@@ -107,17 +112,21 @@ export class StorageService {
 
   async getPendingSync(): Promise<any[]> {
     const db = this.ensureDB();
-    const [results] = await db.executeSql(`
-      SELECT sq.id as queueId, sq.record_id, sq.type, 
-             al.personnel_id, p.name as personnel_name, al.timestamp, al.liveness_method, al.confidence 
-      FROM SyncQueue sq
-      JOIN AttendanceLog al ON sq.record_id = al.id
-      JOIN Personnel p ON al.personnel_id = p.id
-      ORDER BY sq.created_at ASC
-    `);
+    const [results] = await db.executeSql('SELECT * FROM SyncQueue ORDER BY created_at ASC');
     const pending: any[] = [];
     for (let i = 0; i < results.rows.length; i++) {
-      pending.push(results.rows.item(i));
+      const row = results.rows.item(i);
+      if (row.type === 'ATTENDANCE') {
+        const [att] = await db.executeSql('SELECT al.*, p.name as personnel_name FROM AttendanceLog al JOIN Personnel p ON al.personnel_id = p.id WHERE al.id = ?', [row.record_id]);
+        if (att.rows.length > 0) {
+          pending.push({ queueId: row.id, type: 'ATTENDANCE', ...att.rows.item(0) });
+        }
+      } else if (row.type === 'PERSONNEL') {
+        const [per] = await db.executeSql('SELECT * FROM Personnel WHERE id = ?', [row.record_id]);
+        if (per.rows.length > 0) {
+          pending.push({ queueId: row.id, type: 'PERSONNEL', ...per.rows.item(0) });
+        }
+      }
     }
     return pending;
   }
@@ -128,9 +137,11 @@ export class StorageService {
     return results.rows.item(0).cnt;
   }
 
-  async markSynced(queueId: number, recordId: number): Promise<void> {
+  async markSynced(queueId: number, recordId: number, type: string = 'ATTENDANCE'): Promise<void> {
     const db = this.ensureDB();
-    await db.executeSql('UPDATE AttendanceLog SET synced = 1 WHERE id = ?', [recordId]);
+    if (type === 'ATTENDANCE') {
+      await db.executeSql('UPDATE AttendanceLog SET synced = 1 WHERE id = ?', [recordId]);
+    }
     await db.executeSql('DELETE FROM SyncQueue WHERE id = ?', [queueId]);
   }
 

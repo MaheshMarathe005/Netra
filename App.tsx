@@ -8,20 +8,24 @@ import AuthenticationScreen from './src/screens/AuthenticationScreen';
 import LivenessChallengeScreen from './src/screens/LivenessChallengeScreen';
 import ResultScreen from './src/screens/ResultScreen';
 
+import { CameraProvider } from './src/hooks/useCamera';
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <SafeAreaProvider>
       <AppServicesProvider>
-        <NavigationContainer>
-          <Stack.Navigator initialRouteName="Enrollment" screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#000' } }}>
-            <Stack.Screen name="Enrollment" component={EnrollmentScreen} />
-            <Stack.Screen name="Authentication" component={AuthenticationScreen} />
-            <Stack.Screen name="Liveness" component={LivenessChallengeScreen} />
-            <Stack.Screen name="Result" component={ResultScreen} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <CameraProvider>
+          <NavigationContainer>
+            <Stack.Navigator initialRouteName="Enrollment" screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#000' } }}>
+              <Stack.Screen name="Enrollment" component={EnrollmentScreen} />
+              <Stack.Screen name="Authentication" component={AuthenticationScreen} />
+              <Stack.Screen name="Liveness" component={LivenessChallengeScreen} />
+              <Stack.Screen name="Result" component={ResultScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </CameraProvider>
       </AppServicesProvider>
     </SafeAreaProvider>
   );
