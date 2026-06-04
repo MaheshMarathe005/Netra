@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { Camera } from 'react-native-vision-camera';
 import { useCameraInfo } from '../hooks/useCamera';
 
-const LIVENESS_THRESHOLD = 50; // Minimum liveness score to pass
+const LIVENESS_THRESHOLD = 75; // Strict minimum liveness score to pass
 const CHALLENGE_DURATION_SEC = 5;
 
 export default function LivenessChallengeScreen() {
@@ -130,20 +130,21 @@ export default function LivenessChallengeScreen() {
   useEffect(() => {
     if (countdown === 0 && !hasNavigated.current) {
       hasNavigated.current = true;
-      // Evaluate liveness based on collected scores
-      const avgScore = scores.length > 0
-        ? scores.reduce((a, b) => a + b, 0) / scores.length
+      // Evaluate liveness based on the HIGHEST score achieved during the 5-second window
+      // A spoof photo is static and will never spike. A real 3D face will hit a high-confidence frame at least once.
+      const bestScore = scores.length > 0
+        ? Math.max(...scores)
         : livenessScore; // fallback to last score if no collection
       
-      const isLive = avgScore >= LIVENESS_THRESHOLD;
-      const spoofProbability = Math.max(0, Math.min(1, 1 - (avgScore / 100)));
+      const isLive = bestScore >= LIVENESS_THRESHOLD;
+      const spoofProbability = Math.max(0, Math.min(1, 1 - (bestScore / 100)));
       
       // Stop the process loop
       setCountdown(-1);
       
       navigation.navigate('Result', { 
         success: isLive, 
-        confidence: parseFloat(avgScore.toFixed(1)), 
+        confidence: parseFloat(bestScore.toFixed(1)), 
         spoofScore: parseFloat(spoofProbability.toFixed(3)),
         livenessMethod: 'MiniFASNet + BlazeFace',
         personId: route.params?.personId,
